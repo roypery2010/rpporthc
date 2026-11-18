@@ -36,7 +36,7 @@ image is not expected to match; the fixed point is reached one generation
 later:
 
 ```console
-$ ./bootstrap.sh
+$ RPPORTH_FASM=fasm bash ./bootstrap.sh
 [1/4] assembling stage 0
 [2/4] stage 0 compiles the compiler
 [3/4] stage 1 compiles the compiler
@@ -52,7 +52,7 @@ $ ./bin/porth com -r examples/hello-world.porth
 $ ./bin/porth help
 ```
 
-The self-hosted compiler emits x86_64 FASM (`-f fasm`, the default), ARM64
+The self-hosted compiler emits x86_64 FASM (`-f fasmarm`, the default, with `-f fasm`可通过 `RPPORTHC_FASM` 覆盖), ARM64
 FASMARM (`-f fasmarm`) or portable C (`-f c`). The assembly formats invoke
 `fasm`/`fasmarm` directly. The C target writes `<output>.c` next to the
 executable and builds it with `cc -O2`, so it works on any host with a C
