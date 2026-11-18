@@ -1,0 +1,12 @@
+include "std.porth"
+
+const N
+  69
+  cast
+    bool ptr-to ptr-to ptr-to ptr-to ptr-to
+  end
+end
+
+proc main in
+  N
+end

@@ -1,0 +1,11 @@
+0.0.2
+
+    Introduced three convenience flags to the compiler:
+    -s             Silent mode. Don't print any info about compilation phases.
+    -r             Run the program after successful compilation.
+    -m <capacity>  The size of the memory buffer in bytes to allocate for the
+                   bf program runtime. (Default: 1024)
+
+0.0.1  19.02.2022
+
+    Initial release of the brainfuck compiler based on the Porth's backend

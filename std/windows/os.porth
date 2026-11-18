@@ -1,0 +1,149 @@
+// Platform ABI definitions for Windows.
+//
+// Selected with `porth com -os windows`.  Windows has no POSIX layer, so this
+// module describes the CRT (`_open`, `_read`, `_stat64`, `<errno.h>`) and says
+// plainly where there is no equivalent at all.
+//
+// The emitted C runtime maps `open`, `read`, `write`, `close`, `lseek`, `stat`,
+// `fstat`, `getcwd`, `chdir`, `mkdir`, `unlink`, `rename`, `access`, `dup2`,
+// `getpid` and `exit` onto the CRT and returns ENOSYS for everything else.  The
+// constants below cover the mapped calls; the termios/winsize/sigaction groups
+// are dummies that only size the buffers a program allocates, because the calls
+// they belong to are ENOSYS on this target.
+//
+// Sources: ucrt `<sys/stat.h>` (`struct _stat64`), `<fcntl.h>` (`_O_*`),
+// `<errno.h>`, `<signal.h>`, `<winsock2.h>` (`SOCKADDR_IN`).
+
+include "core.porth"
+
+// _O_BINARY is ORed into every access mode: Porth reads and writes raw bytes,
+// and the CRT would otherwise translate \n to \r\n on the way through.
+const O_BINARY    0x8000 end
+const O_RDONLY    0x8000 end
+const O_WRONLY    0x8001 end
+const O_RDWR      0x8002 end
+const O_CREAT     0x8100 end
+const O_TRUNC     0x8200 end
+// The CRT has no non-blocking mode; `fcntl` is ENOSYS here anyway.
+const O_NONBLOCK  0x0 end
+
+// No F_GETFL/F_SETFL equivalents; `fcntl` is ENOSYS.
+const F_SETFL 0 end
+const F_GETFL 0 end
+
+const EPERM         1 end
+const ENOENT        2 end
+const EINTR         4 end
+const EIO           5 end
+const EAGAIN       11 end
+const ENOMEM       12 end
+const EACCES       13 end
+const EFAULT       14 end
+const ENOTDIR      20 end
+const EINVAL       22 end
+const ENAMETOOLONG 38 end
+const ELOOP       114 end
+
+// The CRT has no clock_gettime; `clock_gettime` is ENOSYS.  The value is only
+// what a program passes back to us.
+const CLOCK_MONOTONIC 0 end
+const TIMER_ABSTIME   1 end
+
+// No mmap; `mmap` is ENOSYS.
+const MAP_PRIVATE 2 end
+const MAP_ANONYMOUS 32 end
+const PROT_READ 1 end
+const PROT_WRITE 2 end
+
+const SIGQUIT 3 end
+const SIGINT  2 end
+
+const timespec.tv_sec  sizeof(int) offset end
+const timespec.tv_nsec sizeof(int) offset end
+const sizeof(timespec) reset end
+
+// struct _stat64 { _dev_t(4) st_dev; _ino_t(2) st_ino; u16 st_mode;
+//                  short st_nlink, st_uid, st_gid; _dev_t(4) st_rdev;
+//                  __int64 st_size; __time64_t st_atime, st_mtime, st_ctime; }
+const stat.st_dev     0  end
+const stat.st_ino     4  end
+const stat.st_mode    6  end
+const stat.st_nlink   8  end
+const stat.st_uid     10 end
+const stat.st_gid     12 end
+const stat.st_rdev    16 end
+const stat.st_size    24 end
+const stat.st_blksize 0  end
+const stat.st_blocks  0  end
+const stat.st_atim    32 end
+const stat.st_mtim    40 end
+const stat.st_ctim    48 end
+const sizeof(stat) 56 end
+const sizeof(stat.st_dev) sizeof(u32) end
+const sizeof(stat.st_ino) sizeof(u16) end
+const sizeof(stat.st_mode) sizeof(u16) end
+const sizeof(stat.st_nlink) sizeof(u16) end
+const sizeof(stat.st_uid) sizeof(u16) end
+const sizeof(stat.st_gid) sizeof(u16) end
+const sizeof(stat.st_rdev) sizeof(u32) end
+const sizeof(stat.st_size) sizeof(u64) end
+// The CRT timestamps are time_t seconds with no nanosecond field.
+const sizeof(stat.st_atim) sizeof(u64) end
+const sizeof(stat.st_mtim) sizeof(u64) end
+const sizeof(stat.st_ctim) sizeof(u64) end
+
+// SOCKADDR_IN { short sin_family; u16 sin_port; IN_ADDR sin_addr;
+//               char sin_zero[8]; }
+const sizeof(sockaddr) 16 end
+const sockaddr_in.sin_family 0 end
+const sockaddr_in.sin_port 2 end
+const sockaddr_in.sin_addr 4 end
+const sizeof(sockaddr_in.sin_family) 2 end
+const sizeof(sockaddr_in.sin_port) 2 end
+const sizeof(sockaddr_in.sin_addr) 4 end
+
+const AF_INET 2 end
+const SOCK_STREAM 1 end
+// NOTE: This is not standard. I invented this constant as an opposite ot INADDR_ANY
+const INADDR_LOCAL 16777343 end
+
+const PATH_MAX 260 end
+
+// Windows has no termios.  These values keep `std/termios.porth` and its users
+// compiling and sizing their buffers; `ioctl` is ENOSYS, so they are never
+// matched against anything.
+const sizeof(tcflag_t) sizeof(u32) end
+const sizeof(cc_t) sizeof(u8) end
+const NCCS 32 end
+const termios.c_iflag 0 end
+const termios.c_oflag 4 end
+const termios.c_cflag 8 end
+const termios.c_lflag 12 end
+const termios.c_cc 17 end
+const sizeof(termios) 60 end
+
+const winsize.ws_row sizeof(u16) offset end
+const winsize.ws_col sizeof(u16) offset end
+const winsize.ws_xpixel sizeof(u16) offset end
+const winsize.ws_ypixel sizeof(u16) offset end
+const sizeof(winsize) reset end
+
+const TIOCGWINSZ 0x5413 end
+const TCGETS     0x5401 end
+const TCSETS     0x5402 end
+const TCSETSF    0x5404 end
+const ICANON          2 end
+const ECHO            8 end
+const VTIME           5 end
+const VMIN            6 end
+
+const TCSAFLUSH 2 end
+const TCSANOW 0 end
+
+// Windows installs no signal handlers from user space in the way sigaction(2)
+// describes; `rt_sigaction` is ENOSYS.
+const sizeof(sigaction) 32 end
+const sigaction.handler 0 end
+const sigaction.flags 8 end
+const sigaction.restorer 16 end
+const SA_RESTORER 0 end

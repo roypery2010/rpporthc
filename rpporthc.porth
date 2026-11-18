@@ -1,0 +1,20 @@
+// The reference implementation of the Porth Programming language in itself
+
+include "std.porth"
+
+// Suppress any logging in the compiler
+var silent bool end
+// Annotate IR instructions in the output assembly
+var annotate bool end
+// OS ABI module selected by `-os` (see std/os.porth). 0 is Linux, the default.
+var os int end
+
+include "src/lex.porth"
+include "src/types.porth"
+include "src/com.porth"
+include "src/check.porth"
+include "src/gen.porth"
+include "src/opt.porth"
+include "src/main.porth"
+
+// TODO: warning about unused names

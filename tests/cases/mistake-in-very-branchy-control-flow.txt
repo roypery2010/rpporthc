@@ -1,0 +1,10 @@
+:i argc 0
+:b stdin 0
+
+:i returncode 1
+:b stdout 0
+
+:b stderr 168
+./tests/mistake-in-very-branchy-control-flow.porth:148:1: ERROR: Unhandled data on the stack
+./tests/mistake-in-very-branchy-control-flow.porth:95:21: NOTE: type `int`
+

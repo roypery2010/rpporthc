@@ -1,0 +1,11 @@
+:i argc 0
+:b stdin 0
+
+:i returncode 1
+:b stdout 0
+
+:b stderr 286
+./tests/ptr-to-type-mismatch.porth:14:8: ERROR: Argument 0 of `foo` is expected to be type `int ptr-to` but got type `bool ptr-to`
+./tests/ptr-to-type-mismatch.porth:14:3: NOTE: Argument 0 was provided here
+./tests/ptr-to-type-mismatch.porth:3:10: NOTE: Expected type was declared here
+

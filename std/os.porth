@@ -1,0 +1,144 @@
+// Platform ABI definitions: struct layouts, flag bits, errno values and the
+// ioctl request handles the standard library passes around.
+//
+// This is the Linux module and the default one.  `porth com -os <name>` picks
+// the module from `std/<name>/os.porth` instead, so the same program compiled
+// with `-os darwin` or `-os windows` gets that OS's numbers.  Every module
+// exports the same names; only the values differ.
+//
+// The names in `std/linux.porth` (the syscall numbers and the wrappers built on
+// them) are handles rather than values: the emitted C runtime translates them
+// per OS, so they stay the same in every module.  These definitions, in
+// contrast, are inlined as numbers, so they have to match the OS the program
+// actually runs on.  The C backend checks that at build time with
+// `_Static_assert`s generated next to the runtime.
+//
+// Linux x86_64 values follow <sys/stat.h>, <termios.h>, <fcntl.h>, <errno.h>,
+// <sys/mman.h>, <time.h> and <asm/ioctls.h>.  The struct layouts and
+// `_Static_assert`s are gated on `__x86_64__` because the offsets above are
+// the x86_64 glibc ones; aarch64 glibc `struct stat` differs.
+
+include "../std/core.porth"
+
+const O_RDONLY              0b0 end
+const O_WRONLY              0b1 end
+const O_RDWR               0b10 end
+const O_CREAT         0b1000000 end
+const O_TRUNC      0b1000000000 end
+const O_NONBLOCK 0b100000000000 end
+
+const F_SETFL 4 end
+const F_GETFL 3 end
+
+const EPERM         1 end
+const ENOENT        2 end
+const EINTR         4 end
+const EIO           5 end
+const EAGAIN       11 end
+const ENOMEM       12 end
+const EACCES       13 end
+const EFAULT       14 end
+const ENOTDIR      20 end
+const EINVAL       22 end
+const ENAMETOOLONG 36 end
+const ELOOP        40 end
+
+const CLOCK_MONOTONIC 1 end
+const TIMER_ABSTIME   1 end
+
+const MAP_PRIVATE 2 end
+const MAP_ANONYMOUS 32 end
+const PROT_READ 1 end
+const PROT_WRITE 2 end
+
+const SIGQUIT 3 end
+const SIGINT  2 end
+
+// struct timespec { time_t tv_sec; long tv_nsec; };
+const timespec.tv_sec  sizeof(int) offset end
+const timespec.tv_nsec sizeof(int) offset end
+const sizeof(timespec) reset end
+
+// struct stat, 64-bit inode variant of x86_64 Linux.
+const stat.st_dev     0   end
+const stat.st_ino     8   end
+const stat.st_mode    24  end
+const stat.st_nlink   16  end
+const stat.st_uid     28  end
+const stat.st_gid     32  end
+const stat.st_rdev    40  end
+const stat.st_size    48  end
+const stat.st_blksize 56  end
+const stat.st_blocks  64  end
+const stat.st_atim    72  end
+const stat.st_mtim    88  end
+const stat.st_ctim    104 end
+const sizeof(stat) 144 end
+const sizeof(stat.st_dev) sizeof(u64) end
+const sizeof(stat.st_ino) sizeof(u64) end
+const sizeof(stat.st_mode) sizeof(u32) end
+const sizeof(stat.st_nlink) sizeof(u64) end
+const sizeof(stat.st_uid) sizeof(u32) end
+const sizeof(stat.st_gid) sizeof(u32) end
+const sizeof(stat.st_rdev) sizeof(u64) end
+const sizeof(stat.st_size) sizeof(u64) end
+const sizeof(stat.st_blksize) sizeof(u64) end
+const sizeof(stat.st_blocks) sizeof(u64) end
+const sizeof(stat.st_atim) sizeof(timespec) end
+const sizeof(stat.st_mtim) sizeof(timespec) end
+const sizeof(stat.st_ctim) sizeof(timespec) end
+
+// struct sockaddr_in { short sin_family; u16 sin_port; u32 sin_addr; char pad[8]; };
+const sizeof(sockaddr) 16 end
+const sockaddr_in.sin_family 0 end
+const sockaddr_in.sin_port 2 end
+const sockaddr_in.sin_addr 4 end
+const sizeof(sockaddr_in.sin_family) 2 end
+const sizeof(sockaddr_in.sin_port) 2 end
+const sizeof(sockaddr_in.sin_addr) 4 end
+
+const AF_INET 2 end
+const SOCK_STREAM 1 end
+// NOTE: This is not standard. I invented this constant as an opposite ot INADDR_ANY
+const INADDR_LOCAL 16777343 end
+
+const PATH_MAX 4096 end
+
+// struct termios { tcflag_t c_iflag, c_oflag, c_cflag, c_lflag; cc_t c_line;
+//                  cc_t c_cc[NCCS]; }  with tcflag_t = u32, cc_t = u8.
+const sizeof(tcflag_t) sizeof(u32) end
+const sizeof(cc_t) sizeof(u8) end
+const NCCS 32 end
+const termios.c_iflag 0 end
+const termios.c_oflag 4 end
+const termios.c_cflag 8 end
+const termios.c_lflag 12 end
+const termios.c_cc 17 end
+const sizeof(termios) 60 end
+
+// STRUCT winsize { unsigned short ws_row, ws_col, ws_xpixel, ws_ypixel; };
+const winsize.ws_row sizeof(u16) offset end
+const winsize.ws_col sizeof(u16) offset end
+const winsize.ws_xpixel sizeof(u16) offset end
+const winsize.ws_ypixel sizeof(u16) offset end
+const sizeof(winsize) reset end
+
+const TIOCGWINSZ 0x5413 end
+const TCGETS     0x5401 end
+const TCSETS     0x5402 end
+const TCSETSF    0x5404 end
+const ICANON          2 end
+const ECHO            8 end
+const VTIME           5 end
+const VMIN            6 end
+
+const TCSAFLUSH 2 end
+const TCSANOW 0 end
+
+// struct sigaction { void *sa_handler; unsigned long sa_flags; void *sa_restorer;
+//                    sigset_t sa_mask; }
+const sizeof(sigaction) 32 end
+const sigaction.handler 0 end
+const sigaction.flags 8 end
+const sigaction.restorer 16 end
+const SA_RESTORER 0x4000000 end

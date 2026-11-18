@@ -1,0 +1,26 @@
+#!/bin/sh
+# Launcher for the self-hosted Porth compiler built by ./bootstrap.sh.
+set -eu
+
+ROOT=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+BIN="$ROOT/build/porth"
+
+if [ ! -x "$BIN" ]; then
+    echo "porth: error: $BIN is missing; run ./bootstrap.sh first" >&2
+    exit 1
+fi
+
+# Keep the caller's directory (so relative inputs work) but make the bundled
+# standard library and compiler sources available to include lookups.
+if [ "$(uname -m)" = "x86_64" ]; then
+    exec "$BIN" -I "$ROOT" -I "$ROOT/std" "$@"
+fi
+
+for qemu in qemu-x86_64 qemu-x86_64-static; do
+    if command -v "$qemu" >/dev/null 2>&1; then
+        exec "$qemu" "$BIN" -I "$ROOT" -I "$ROOT/std" "$@"
+    fi
+done
+
+echo "porth: error: qemu-x86_64 is required to run this compiler on $(uname -m)" >&2
+exit 1

@@ -1,0 +1,25 @@
+format ELF64 executable 3
+processor rv64
+code64
+entry rp_start
+segment readable executable
+
+rp_start:
+  li a7, 64      # syscall: exit
+  li a0, 0       # exit code 0
+  ecall
+
+  # print "Hello, World" using write syscall (7)
+  li a7, 7       # syscall: write
+  li a0, 1       # stdout
+  la a1, msg     # message address
+  li a2, msglen  # message length
+  ecall
+
+  # exit
+  li a7, 64      # syscall: exit
+  li a0, 0       # exit code 0
+  ecall
+
+msg: .ascii "Hello, World"
+msglen = $ - msg

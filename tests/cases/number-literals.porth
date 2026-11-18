@@ -1,0 +1,19 @@
+include "std.porth"
+
+// NOTE: Not a correct number literal, interpreted as word
+const 0xFFFZ 69 end
+const -0x_ 69 end
+const _ 69 end
+const 0bFF 69 end
+
+proc main in
+  69                                         print
+  0xAA                                       print
+  0xBB                                       print
+  0xFF                                       print
+  0xFFFF                                     print
+  0xFFFF_FFFF                                print
+  0o644                                      print
+  0b1111_0000_1111_0000__1111_0000_1111_0000 print
+  -0xFF                                      print
+end

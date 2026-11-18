@@ -1,0 +1,10 @@
+:i argc 0
+:b stdin 0
+
+:i returncode 1
+:b stdout 0
+
+:b stderr 128
+./tests/if-else-less-fail.porth:2:22: ERROR: Unhandled data on the stack
+./tests/if-else-less-fail.porth:2:19: NOTE: type `int`
+

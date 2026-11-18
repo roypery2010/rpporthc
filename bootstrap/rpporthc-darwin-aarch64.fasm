@@ -1,0 +1,9 @@
+format ELF64 executable 3
+processor cpu64_v8
+code64
+entry rp_start
+segment readable executable
+
+rp_start:
+	mov	x0, 0		; exit code
+	ret

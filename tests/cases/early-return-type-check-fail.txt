@@ -1,0 +1,11 @@
+:i argc 0
+:b stdin 0
+
+:i returncode 1
+:b stdout 0
+
+:b stderr 219
+./tests/early-return-type-check-fail.porth:4:3: ERROR: Insufficient data on the stack
+./tests/early-return-type-check-fail.porth:3:17: NOTE: type `bool`
+./tests/early-return-type-check-fail.porth:3:13: NOTE: type `int`
+

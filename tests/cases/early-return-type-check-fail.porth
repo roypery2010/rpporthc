@@ -1,0 +1,10 @@
+include "std.porth"
+
+proc foo -- int bool in
+  return
+  69 true
+end
+
+proc main in
+  foo let _ _ in end
+end

@@ -1,0 +1,229 @@
+/// BEGIN DataType //////////////////////////////
+const DATATYPE_INT  1 offset end
+const DATATYPE_PTR  1 offset end
+const DATATYPE_BOOL 1 offset end
+const DATATYPE_ADDR 1 offset end
+const COUNT_DATATYPES  reset end
+
+inline proc unpack-type int -- int int in
+  let x in
+    x 16 shr 0xFFFF and
+    x        0xFFFF and
+  end
+end
+
+inline proc pack-type int int -- int in
+  let ptr-count prim in
+    ptr-count 0xFFFF and 16 shl
+    prim      0xFFFF and
+    or
+  end
+end
+
+const HUMAN_SINGULAR 1 offset end
+const HUMAN_PLURAL   1 offset end
+const COUNT_HUMAN       reset end
+
+proc human-token-type
+  int // token type
+  int // plurality
+  --
+  int ptr // str
+in
+  assert "Exhaustive handling of noun categories" COUNT_HUMAN 2 = end
+
+  let type plurality in
+    plurality HUMAN_SINGULAR = if
+      assert "Exhaustive handling of token types" COUNT_TOKENS 6 = end
+           type TOKEN_INT     = if  "an integer"
+      else type TOKEN_WORD    = if* "a word"
+      else type TOKEN_STR     = if* "a string"
+      else type TOKEN_CSTR    = if* "a C-style string"
+      else type TOKEN_CHAR    = if* "a character"
+      else type TOKEN_KEYWORD = if* "a keyword"
+      else
+        str-null
+        here eputs ": Assertion Failed: unreachable\n" eputs
+        69 exit
+      end
+    else plurality HUMAN_PLURAL = if*
+      assert "Exhaustive handling of token types" COUNT_TOKENS 6 = end
+           type TOKEN_INT     = if  "integers"
+      else type TOKEN_WORD    = if* "words"
+      else type TOKEN_STR     = if* "strings"
+      else type TOKEN_CSTR    = if* "C-style strings"
+      else type TOKEN_CHAR    = if* "characters"
+      else type TOKEN_KEYWORD = if* "keywords"
+      else
+        str-null
+        here eputs ": Assertion Failed: unreachable\n" eputs
+        69 exit
+      end
+    else
+      str-null
+      here eputs ": Assertion Failed: unreachable\n" eputs
+      69 exit
+    end
+  end
+end
+
+proc datatype-by-name
+  int ptr // data type name
+  --
+  int // data type
+  bool // found
+in
+  memory name sizeof(Str) end
+  name !Str
+  assert "Exhaustive handling of data types in datatype-by-name" COUNT_DATATYPES 4 = end
+       name @Str "ptr"  streq if  DATATYPE_PTR  true
+  else name @Str "bool" streq if* DATATYPE_BOOL true
+  else name @Str "int"  streq if* DATATYPE_INT  true
+  else name @Str "addr" streq if* DATATYPE_ADDR true
+  else 0 false end
+end
+
+proc display-type
+  int // data type
+  --
+  int ptr
+in
+  unpack-type
+  let count-ptr prim in
+    tmp-end
+    assert "Exhaustive handling of data types in datatype-name" COUNT_DATATYPES 4 = end
+         prim DATATYPE_INT  = if  "int"  tmp-append drop
+    else prim DATATYPE_BOOL = if* "bool" tmp-append drop
+    else prim DATATYPE_PTR  = if* "ptr"  tmp-append drop
+    else prim DATATYPE_ADDR = if* "addr" tmp-append drop
+    else
+      here eputs ": unreachable\n" eputs
+      69 exit
+    end
+
+    count-ptr
+    while dup 0 > do
+      " ptr-to" tmp-append drop
+      1 -
+    end drop
+
+    dup tmp-end swap ptr-diff swap
+  end
+end
+/// END DataType //////////////////////////////
+
+/// BEGIN TypeStack //////////////////////////////
+const TypeFrame.type sizeof(int) offset end
+const TypeFrame.loc  sizeof(Loc) offset end
+const TypeFrame.prev sizeof(ptr) offset end
+const sizeof(TypeFrame)           reset end
+
+const TypeStack.top   sizeof(ptr) offset end
+const TypeStack.count sizeof(int) offset end
+const sizeof(TypeStack)            reset end
+
+const TYPE_FRAME_POOL_CAP 16 1024 * end
+memory type-frame-pool TYPE_FRAME_POOL_CAP sizeof(TypeFrame) * end
+var type-frame-pool-count int end
+
+proc type-frame-alloc -- ptr in
+  type-frame-pool-count @ TYPE_FRAME_POOL_CAP >= if
+    here eputs ": ERROR: Type Frame Pool overflow! Time to implement proper memory management! Or you can just increase the size of the pool, that will work too. Kappa\n" eputs
+    1 exit
+  end
+
+  type-frame-pool-count @
+  sizeof(TypeFrame) *
+  type-frame-pool +ptr
+
+  type-frame-pool-count inc
+end
+
+proc type-stack-push
+  int // type
+  ptr // Loc
+  ptr // stack
+in
+  memory stack sizeof(ptr) end
+  stack !ptr
+
+  memory new-top sizeof(ptr) end
+  type-frame-alloc new-top !ptr
+
+  sizeof(Loc) swap new-top @ptr TypeFrame.loc ptr+ memcpy drop
+  new-top @ptr TypeFrame.type ptr+ !int
+
+  stack   @ptr TypeStack.top  ptr+ @ptr
+  new-top @ptr TypeFrame.prev ptr+ !ptr
+
+  new-top @ptr
+  stack   @ptr TypeStack.top ptr+ !ptr
+
+  stack   @ptr TypeStack.count ptr+ inc64
+end
+
+proc type-stack-push-frame
+  ptr // frame
+  ptr // stack
+in
+  swap
+  dup  TypeFrame.type ptr+ @int
+  swap TypeFrame.loc ptr+
+  rot
+  type-stack-push
+end
+
+proc type-stack-pop
+  ptr // stack
+in
+  dup TypeStack.count ptr+ dec64
+  TypeStack.top ptr+
+  dup @ptr NULL ptr!= if
+    dup @ptr TypeFrame.prev ptr+ @ptr
+    swap
+    !ptr
+  else drop end
+end
+
+proc ?type-stack-empty ptr -- bool in TypeStack.top ptr+ @ptr NULL ptr= end
+
+proc type-stack-dump
+  ptr // type stack
+  int // fd
+in
+  memory fd sizeof(int) end
+  fd !int
+  TypeStack.top ptr+ @ptr
+    while dup NULL ptr!= do
+      dup TypeFrame.loc ptr+                     fd @int fputloc
+      ": NOTE: type `"                           fd @int fputs
+      dup TypeFrame.type ptr+ @int display-type  fd @int fputs
+      "`\n"                                      fd @int fputs
+
+      TypeFrame.prev ptr+ @ptr
+    end
+  drop
+end
+
+proc type-stack-reverse
+  ptr // ins
+  --
+  ptr // outs
+in
+  memory outs sizeof(ptr) end
+  sizeof(TypeStack) tmp-alloc outs !ptr
+
+  TypeStack.top ptr+ @ptr
+    while dup NULL ptr!= do
+      dup TypeFrame.type ptr+ @int
+      over TypeFrame.loc ptr+
+      outs @ptr
+      type-stack-push
+
+      TypeFrame.prev ptr+ @ptr
+    end
+  drop
+
+  outs @ptr
+end
+/// END TypeStack //////////////////////////////

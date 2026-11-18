@@ -1,0 +1,10 @@
+:i argc 0
+:b stdin 0
+
+:i returncode 1
+:b stdout 0
+
+:b stderr 192
+./tests/cast-block-inside-of-const-eval.porth:12:1: ERROR: Unhandled data on the stack
+./tests/cast-block-inside-of-const-eval.porth:11:3: NOTE: type `bool ptr-to ptr-to ptr-to ptr-to ptr-to`
+

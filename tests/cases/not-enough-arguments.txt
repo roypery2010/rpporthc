@@ -1,0 +1,9 @@
+:i argc 0
+:b stdin 0
+
+:i returncode 1
+:b stdout 0
+
+:b stderr 109
+./tests/not-enough-arguments.porth:1:14: ERROR: Not enough arguments provided for `+`. Expected 2 but got 0.
+

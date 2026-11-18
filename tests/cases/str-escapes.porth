@@ -1,0 +1,15 @@
+include "std.porth"
+
+
+
+proc main in
+  "\n\r\\\"\'"
+    while over 0 > do
+      let n s in
+        s @8 print
+        n 1 -
+        s 1 ptr+
+      end
+    end
+  str-drop
+end

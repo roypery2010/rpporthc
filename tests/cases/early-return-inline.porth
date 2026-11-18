@@ -1,0 +1,7 @@
+include "std.porth"
+
+inline proc foo in return end
+
+proc main in
+  foo
+end

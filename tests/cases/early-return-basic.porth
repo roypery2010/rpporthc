@@ -1,0 +1,7 @@
+include "std.porth"
+
+proc main in
+  "before early return\n" puts
+  return
+  "after early return\n" puts
+end

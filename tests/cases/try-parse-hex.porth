@@ -1,0 +1,18 @@
+include "std.porth"
+
+proc check int bool in
+  if print else drop "not hex\n" puts end
+end
+
+proc main in
+  '0' hex-digit check
+  '5' hex-digit check
+  'a' hex-digit check
+  'A' hex-digit check
+  'F' hex-digit check
+  'z' hex-digit check
+  "F" try-parse-hex check
+  "FF" try-parse-hex check
+  "FFFF" try-parse-hex check
+  "Hello, World" try-parse-hex check
+end

@@ -1,0 +1,2234 @@
+// TODOO: an option to detect stack overflow at runtime
+const X86_64_RET_STACK_CAP 64 1024 * end
+
+/// BEGIN Code Generator //////////////////////////////
+proc bputdecstr
+  int ptr
+  ptr
+in
+  let n s bfd in
+    true n s
+    while over 0 > do
+      let first n s in
+        first lnot if "," bfd bputs end
+        s @8 bfd bputu
+
+        false
+        n 1 -
+        s 1 ptr+
+      end
+    end
+    drop drop drop
+  end
+end
+
+proc generate-print-intel-linux-x86_64
+  ptr // bfd
+in
+  let bfd in
+    "print:\n"                           bfd bputs
+    "mov     r9, -3689348814741910323\n" bfd bputs
+    "sub     rsp, 40\n"                  bfd bputs
+    "mov     BYTE [rsp+31], 10\n"        bfd bputs
+    "lea     rcx, [rsp+30]\n"            bfd bputs
+    ".L2:\n"                             bfd bputs
+    "mov     rax, rdi\n"                 bfd bputs
+    "lea     r8, [rsp+32]\n"             bfd bputs
+    "mul     r9\n"                       bfd bputs
+    "mov     rax, rdi\n"                 bfd bputs
+    "sub     r8, rcx\n"                  bfd bputs
+    "shr     rdx, 3\n"                   bfd bputs
+    "lea     rsi, [rdx+rdx*4]\n"         bfd bputs
+    "add     rsi, rsi\n"                 bfd bputs
+    "sub     rax, rsi\n"                 bfd bputs
+    "add     eax, 48\n"                  bfd bputs
+    "mov     BYTE [rcx], al\n"           bfd bputs
+    "mov     rax, rdi\n"                 bfd bputs
+    "mov     rdi, rdx\n"                 bfd bputs
+    "mov     rdx, rcx\n"                 bfd bputs
+    "sub     rcx, 1\n"                   bfd bputs
+    "cmp     rax, 9\n"                   bfd bputs
+    "ja      .L2\n"                      bfd bputs
+    "lea     rax, [rsp+32]\n"            bfd bputs
+    "mov     edi, 1\n"                   bfd bputs
+    "sub     rdx, rax\n"                 bfd bputs
+    "xor     eax, eax\n"                 bfd bputs
+    "lea     rsi, [rsp+32+rdx]\n"        bfd bputs
+    "mov     rdx, r8\n"                  bfd bputs
+    os @ 0 = if "mov     rax, 1\n" else "mov     rax, 0x2000004\n" end bfd bputs
+    "syscall\n"                          bfd bputs
+    "add     rsp, 40\n"                  bfd bputs
+    "ret\n"                              bfd bputs
+  end
+end
+
+proc generate-op-comment ptr ptr in
+  let op bfd in
+    op Op.type    ptr+ @int
+    op Op.operand ptr+ @int
+    op Op.token   ptr+
+    let type operand token in
+      ";; "                    bfd bputs
+      token Token.loc ptr+     bfd bputloc
+      ": "                     bfd bputs
+      type op-type-as-str      bfd bputs
+      " "                      bfd bputs
+      type OP_INTRINSIC = if
+        operand intrinsic-name bfd bputs
+      else
+        operand                bfd bputu
+      end
+      "\n"                     bfd bputs
+    end
+  end
+end
+
+proc generate-op-intel-linux-x86_64
+  int // ip
+  ptr // bfd
+in
+  let ip bfd in
+
+    ip sizeof(Op) * ops +ptr
+    let op in
+      op Op.label ptr+ @bool if
+        "addr" bfd bputs
+        ip     bfd bputu
+        ":\n"  bfd bputs
+      end
+
+      annotate @ if
+        op bfd generate-op-comment
+      end
+
+      op Op.type ptr+ @int
+      op Op.operand ptr+ @int
+      let type operand in
+        assert "Exhaustive handling of Op types in generate-op-intel-linux-x86_64" COUNT_OPS 28 = end
+        type OP_PUSH_INT = if
+           "mov rax, "   bfd bputs operand bfd bputu "\n" bfd bputs
+           "push rax\n"  bfd bputs
+        else type OP_PUSH_BOOL = if*
+           "mov rax, "   bfd bputs operand bfd bputu "\n" bfd bputs
+           "push rax\n"  bfd bputs
+        else type OP_PUSH_PTR = if*
+           "mov rax, "   bfd bputs operand bfd bputu "\n" bfd bputs
+           "push rax\n"  bfd bputs
+        else type OP_PUSH_ADDR_OF = if*
+           "mov rax, addr"                                  bfd bputs
+           operand sizeof(Proc) * procs +ptr Proc.addr ptr+ @int bfd bputu
+           "\n"                                                  bfd bputs
+           "push rax\n"                                      bfd bputs
+        else type OP_CALL_LIKE = if*
+           "pop rbx\n"                  bfd bputs
+           "call rbx\n"                 bfd bputs
+        else type OP_BIND_LET = if*
+          "sub r15, "   bfd bputs
+          operand 8 *   bfd bputu
+          "\n"          bfd bputs
+
+          operand
+          while dup 0 > do
+            "pop rax\n" bfd bputs
+            "mov [r15+" bfd bputs
+            dup 1 - 8 * bfd bputu
+            "], rax\n"  bfd bputs
+            1 -
+          end drop
+        else type OP_BIND_PEEK = if*
+          "sub r15, "          bfd bputs operand 8 * bfd bputu "\n" bfd bputs
+
+          0
+          operand
+          while over over < do
+            let i n in
+              "mov rax, [rsp+" bfd bputs
+              i 8 *            bfd bputu
+              "]\n"            bfd bputs
+
+              "mov [r15+"      bfd bputs
+              n i - 1 - 8 *    bfd bputu
+              "], rax\n"       bfd bputs
+
+              i 1 +
+              n
+            end
+          end
+          drop
+          drop
+        else type OP_UNBIND = if*
+          "add r15, " bfd bputs
+          operand 8 * bfd bputu
+          "\n"        bfd bputs
+        else type OP_PUSH_BIND = if*
+           "push QWORD [r15+" bfd bputs
+           operand 8 *        bfd bputu
+           "]\n"              bfd bputs
+        else type OP_PUSH_LOCAL_MEM = if*
+          operand 0 > if
+            "mov rax, r15\n" bfd bputs
+            "add rax, "      bfd bputs
+            operand          bfd bputu
+            "\n"             bfd bputs
+            "push rax\n"     bfd bputs
+          else
+            "push r15\n"     bfd bputs
+          end
+        else type OP_PUSH_GLOBAL_MEM = if*
+           "push mem+" bfd bputs operand bfd bputu "\n" bfd bputs
+        else type OP_PUSH_GLOBAL_VAR = if*
+          operand sizeof(Var) * global-vars +ptr Var.offset ptr+ @int
+          let off in
+            "push mem+" bfd bputs off bfd bputu "\n" bfd bputs
+          end
+        else type OP_PUSH_LOCAL_VAR = if*
+          operand
+          32 shr
+          0xFFFF_FFFF and
+          let offzet in
+            offzet 0 > if
+              "mov rax, r15\n" bfd bputs
+              "add rax, "      bfd bputs
+              offzet           bfd bputu
+              "\n"             bfd bputs
+              "push rax\n"     bfd bputs
+            else
+              "push r15\n" bfd bputs
+            end
+          end
+        else type OP_PUSH_STR = if*
+           "mov rax, " bfd bputs
+             operand
+             sizeof(Strlit) *
+             strlits   +ptr
+             Strlit.str ptr+
+             Str.count  ptr+
+             @int
+             bfd bputu
+           "\n" bfd bputs
+
+           "push rax\n"     bfd bputs
+           "push str"       bfd bputs
+             operand bfd bputu
+           "\n"                 bfd bputs
+        else type OP_PUSH_CSTR = if*
+           "push str"      bfd bputs
+           operand bfd bputu
+           "\n"                 bfd bputs
+        else type OP_IF = if*
+           "pop rax\n"       bfd bputs
+           "test rax, rax\n" bfd bputs
+           "jz addr"        bfd bputs ip operand + bfd bputu "\n" bfd bputs
+        else type OP_IFSTAR = if*
+           "pop rax\n"       bfd bputs
+           "test rax, rax\n" bfd bputs
+           "jz addr"        bfd bputs ip operand + bfd bputu "\n" bfd bputs
+        else type OP_ELSE = if*
+           "jmp addr"       bfd bputs ip operand + bfd bputu "\n" bfd bputs
+        else type OP_END_WHILE = if*
+           "jmp addr"       bfd bputs ip operand - bfd bputu "\n" bfd bputs
+        else type OP_END_IF = if*
+           // NOTE: nothing to generate for x86_64
+        else type OP_WHILE = if*
+           // NOTE: nothing to generate. `while` is basically a label
+        else type OP_DO = if*
+           "pop rax\n"       bfd bputs
+           "test rax, rax\n" bfd bputs
+           "jz addr"         bfd bputs ip operand + bfd bputu "\n" bfd bputs
+        else type OP_PREP_PROC = if*
+           "pop rax\n"                  bfd bputs
+           "mov [r15-8], rax\n"         bfd bputs
+           "sub r15, "                  bfd bputs
+           operand 8 +                  bfd bputu
+           "\n"                         bfd bputs
+        else type OP_RET = if*
+           "add r15, "                  bfd bputs
+           operand 8 +                  bfd bputu
+           "\n"                         bfd bputs
+           "push QWORD [r15-8]\n"       bfd bputs
+           "ret\n"                      bfd bputs
+        else type OP_CALL = if*
+           "call addr"                                           bfd bputs
+           operand sizeof(Proc) * procs +ptr Proc.addr ptr+ @int bfd bputu
+           "\n"                                                  bfd bputs
+        else type OP_INLINED = if*
+           // ignored
+        else type OP_CAST = if*
+           // ignored
+        else type OP_INTRINSIC = if*
+            assert "Exhaustive handling of Intrinsics in generate-op-intel-linux-x86_64"
+              COUNT_INTRINSICS 48 =
+            end
+
+            operand INTRINSIC_PLUS = if
+                "pop rax\n"        bfd bputs
+                "add [rsp], rax\n" bfd bputs
+            else operand INTRINSIC_MINUS = if*
+                "pop rax\n"        bfd bputs
+                "sub [rsp], rax\n" bfd bputs
+            else operand INTRINSIC_MUL = if*
+                "pop rax\n"         bfd bputs
+                "mul QWORD [rsp]\n" bfd bputs
+                "mov [rsp], rax\n"  bfd bputs
+            else operand INTRINSIC_DIVMOD = if*
+                "xor rdx, rdx\n"        bfd bputs
+                "pop rbx\n"             bfd bputs
+                "pop rax\n"             bfd bputs
+                "div rbx\n"             bfd bputs
+                "push rax\n"            bfd bputs
+                "push rdx\n"            bfd bputs
+            else operand INTRINSIC_IDIVMOD = if*
+                "pop rbx\n"             bfd bputs
+                "pop rax\n"             bfd bputs
+                "cqo\n"                 bfd bputs
+                "idiv rbx\n"            bfd bputs
+                "push rax\n"            bfd bputs
+                "push rdx\n"            bfd bputs
+            else operand INTRINSIC_MAX = if*
+                "pop rax\n"             bfd bputs
+                "pop rbx\n"             bfd bputs
+                "cmp rbx, rax\n"        bfd bputs
+                "cmovge rax, rbx\n"     bfd bputs
+                "push rax\n"            bfd bputs
+            else operand INTRINSIC_SHR = if*
+                "pop rcx\n"             bfd bputs
+                "pop rbx\n"             bfd bputs
+                "shr rbx, cl\n"         bfd bputs
+                "push rbx\n"            bfd bputs
+            else operand INTRINSIC_SHL = if*
+                "pop rcx\n"             bfd bputs
+                "pop rbx\n"             bfd bputs
+                "shl rbx, cl\n"         bfd bputs
+                "push rbx\n"            bfd bputs
+            else operand INTRINSIC_OR = if*
+                "pop rax\n"             bfd bputs
+                "pop rbx\n"             bfd bputs
+                "or rbx, rax\n"         bfd bputs
+                "push rbx\n"            bfd bputs
+            else operand INTRINSIC_AND = if*
+                "pop rax\n"             bfd bputs
+                "pop rbx\n"             bfd bputs
+                "and rbx, rax\n"        bfd bputs
+                "push rbx\n"            bfd bputs
+            else operand INTRINSIC_NOT = if*
+                "pop rax\n"             bfd bputs
+                "not rax\n"             bfd bputs
+                "push rax\n"            bfd bputs
+            else operand INTRINSIC_PRINT = if*
+                "pop rdi\n"             bfd bputs
+                "call print\n"          bfd bputs
+            else operand INTRINSIC_EQ = if*
+                "mov rcx, 0\n"          bfd bputs
+                "mov rdx, 1\n"          bfd bputs
+                "pop rax\n"             bfd bputs
+                "pop rbx\n"             bfd bputs
+                "cmp rax, rbx\n"        bfd bputs
+                "cmove rcx, rdx\n"      bfd bputs
+                "push rcx\n"            bfd bputs
+            else operand INTRINSIC_GT = if*
+                "mov rcx, 0\n"          bfd bputs
+                "mov rdx, 1\n"          bfd bputs
+                "pop rbx\n"             bfd bputs
+                "pop rax\n"             bfd bputs
+                "cmp rax, rbx\n"        bfd bputs
+                "cmovg rcx, rdx\n"      bfd bputs
+                "push rcx\n"            bfd bputs
+            else operand INTRINSIC_LT = if*
+                "mov rcx, 0\n"          bfd bputs
+                "mov rdx, 1\n"          bfd bputs
+                "pop rbx\n"             bfd bputs
+                "pop rax\n"             bfd bputs
+                "cmp rax, rbx\n"        bfd bputs
+                "cmovl rcx, rdx\n"      bfd bputs
+                "push rcx\n"            bfd bputs
+            else operand INTRINSIC_GE = if*
+                "mov rcx, 0\n"          bfd bputs
+                "mov rdx, 1\n"          bfd bputs
+                "pop rbx\n"             bfd bputs
+                "pop rax\n"             bfd bputs
+                "cmp rax, rbx\n"        bfd bputs
+                "cmovge rcx, rdx\n"     bfd bputs
+                "push rcx\n"            bfd bputs
+            else operand INTRINSIC_LE = if*
+                "mov rcx, 0\n"          bfd bputs
+                "mov rdx, 1\n"          bfd bputs
+                "pop rbx\n"             bfd bputs
+                "pop rax\n"             bfd bputs
+                "cmp rax, rbx\n"        bfd bputs
+                "cmovle rcx, rdx\n"     bfd bputs
+                "push rcx\n"            bfd bputs
+            else operand INTRINSIC_NE = if*
+                "mov rcx, 0\n"          bfd bputs
+                "mov rdx, 1\n"          bfd bputs
+                "pop rbx\n"             bfd bputs
+                "pop rax\n"             bfd bputs
+                "cmp rax, rbx\n"        bfd bputs
+                "cmovne rcx, rdx\n"     bfd bputs
+                "push rcx\n"            bfd bputs
+            else operand INTRINSIC_DUP = if*
+                "push QWORD [rsp]\n"    bfd bputs
+            else operand INTRINSIC_SWAP = if*
+                "pop rax\n"             bfd bputs
+                "pop rbx\n"             bfd bputs
+                "push rax\n"            bfd bputs
+                "push rbx\n"            bfd bputs
+            else operand INTRINSIC_DROP = if*
+                "pop rax\n"             bfd bputs
+            else operand INTRINSIC_OVER = if*
+                "push QWORD [rsp+8]\n"  bfd bputs
+            else operand INTRINSIC_ROT = if*
+                "pop rax\n"             bfd bputs
+                "pop rbx\n"             bfd bputs
+                "pop rcx\n"             bfd bputs
+                "push rbx\n"            bfd bputs
+                "push rax\n"            bfd bputs
+                "push rcx\n"            bfd bputs
+            else operand INTRINSIC_LOAD8 = if*
+                "pop rax\n"             bfd bputs
+                "xor rbx, rbx\n"        bfd bputs
+                "mov bl, [rax]\n"       bfd bputs
+                "push rbx\n"            bfd bputs
+            else operand INTRINSIC_STORE8 = if*
+                "pop rax\n"             bfd bputs
+                "pop rbx\n"             bfd bputs
+                "mov [rax], bl\n"       bfd bputs
+            else operand INTRINSIC_LOAD16 = if*
+                "pop rax\n"             bfd bputs
+                "xor rbx, rbx\n"        bfd bputs
+                "mov bx, [rax]\n"       bfd bputs
+                "push rbx\n"            bfd bputs
+            else operand INTRINSIC_STORE16 = if*
+                "pop rax\n"             bfd bputs
+                "pop rbx\n"             bfd bputs
+                "mov [rax], bx\n"       bfd bputs
+            else operand INTRINSIC_LOAD32 = if*
+                "pop rax\n"             bfd bputs
+                "xor rbx, rbx\n"        bfd bputs
+                "mov ebx, [rax]\n"      bfd bputs
+                "push rbx\n"            bfd bputs
+            else operand INTRINSIC_STORE32 = if*
+                "pop rax\n"             bfd bputs
+                "pop rbx\n"             bfd bputs
+                "mov [rax], ebx\n"      bfd bputs
+            else operand INTRINSIC_LOAD64 = if*
+                "pop rax\n"             bfd bputs
+                "xor rbx, rbx\n"        bfd bputs
+                "mov rbx, [rax]\n"      bfd bputs
+                "push rbx\n"            bfd bputs
+            else operand INTRINSIC_LOAD_PTR_TO = if*
+                "pop rax\n"             bfd bputs
+                "xor rbx, rbx\n"        bfd bputs
+                "mov rbx, [rax]\n"      bfd bputs
+                "push rbx\n"            bfd bputs
+            else operand INTRINSIC_STORE_PTR_TO = if*
+                "pop rax\n"             bfd bputs
+                "pop rbx\n"             bfd bputs
+                "mov [rax], rbx\n"      bfd bputs
+            else operand INTRINSIC_STORE64 = if*
+                "pop rax\n"             bfd bputs
+                "pop rbx\n"             bfd bputs
+                "mov [rax], rbx\n"      bfd bputs
+            else operand INTRINSIC_ARGC = if*
+                "mov rax, [args_ptr]\n" bfd bputs
+                "mov rax, [rax]\n"      bfd bputs
+                "push rax\n"            bfd bputs
+            else operand INTRINSIC_ARGV = if*
+                "mov rax, [args_ptr]\n" bfd bputs
+                "add rax, 8\n"          bfd bputs
+                "push rax\n"            bfd bputs
+            else operand INTRINSIC_ENVP = if*
+                "mov rax, [args_ptr]\n" bfd bputs
+                "mov rax, [rax]\n"      bfd bputs
+                "add rax, 2\n"          bfd bputs
+                "shl rax, 3\n"          bfd bputs
+                "mov rbx, [args_ptr]\n" bfd bputs
+                "add rbx, rax\n"        bfd bputs
+                "push rbx\n"            bfd bputs
+            else operand INTRINSIC_SYSCALL0 = if*
+                "pop rax\n"             bfd bputs
+                "syscall\n"             bfd bputs
+                "push rax\n"            bfd bputs
+            else operand INTRINSIC_SYSCALL1 = if*
+                "pop rax\n"             bfd bputs
+                "pop rdi\n"             bfd bputs
+                "syscall\n"             bfd bputs
+                "push rax\n"            bfd bputs
+            else operand INTRINSIC_SYSCALL2 = if*
+                "pop rax\n"             bfd bputs
+                "pop rdi\n"             bfd bputs
+                "pop rsi\n"             bfd bputs
+                "syscall\n"             bfd bputs
+                "push rax\n"            bfd bputs
+            else operand INTRINSIC_SYSCALL3 = if*
+                "pop rax\n"             bfd bputs
+                "pop rdi\n"             bfd bputs
+                "pop rsi\n"             bfd bputs
+                "pop rdx\n"             bfd bputs
+                "syscall\n"             bfd bputs
+                "push rax\n"            bfd bputs
+            else operand INTRINSIC_SYSCALL4 = if*
+                "pop rax\n"             bfd bputs
+                "pop rdi\n"             bfd bputs
+                "pop rsi\n"             bfd bputs
+                "pop rdx\n"             bfd bputs
+                "pop r10\n"             bfd bputs
+                "syscall\n"             bfd bputs
+                "push rax\n"            bfd bputs
+            else operand INTRINSIC_SYSCALL5 = if*
+                "pop rax\n"             bfd bputs
+                "pop rdi\n"             bfd bputs
+                "pop rsi\n"             bfd bputs
+                "pop rdx\n"             bfd bputs
+                "pop r10\n"             bfd bputs
+                "pop r8\n"              bfd bputs
+                "syscall\n"             bfd bputs
+                "push rax\n"            bfd bputs
+            else operand INTRINSIC_SYSCALL6 = if*
+                "pop rax\n"             bfd bputs
+                "pop rdi\n"             bfd bputs
+                "pop rsi\n"             bfd bputs
+                "pop rdx\n"             bfd bputs
+                "pop r10\n"             bfd bputs
+                "pop r8\n"              bfd bputs
+                "pop r9\n"              bfd bputs
+                "syscall\n"             bfd bputs
+                "push rax\n"            bfd bputs
+            else operand INTRINSIC_CAST_PTR = if*
+            else operand INTRINSIC_CAST_INT = if*
+            else operand INTRINSIC_CAST_BOOL = if*
+            else operand INTRINSIC_CAST_ADDR = if*
+            else operand INTRINSIC_??? = if*
+            else
+              here eputs ": unreachable. Invalid intrinsic.\n" eputs
+              1 exit
+            end
+        else
+          here eputs ": unreachable. Invalid op.\n" eputs
+          1 exit
+        end
+      end
+    end
+  end
+end
+
+proc generate-strs-intel-linux-x86_64
+  ptr // bfd
+in
+  let bfd in
+    0 while dup strlits-count @ < do
+      let i in
+        i sizeof(Strlit) *
+        strlits   +ptr
+
+        dup Strlit.used ptr+ @bool swap
+        dup Strlit.str  ptr+ @Str  rot
+        drop
+        let used n s in
+          used if
+            "str" bfd bputs
+            i     bfd bputu
+            ":"   bfd bputs
+            n 0 > if
+              " db " bfd bputs
+              n s    bfd bputdecstr
+            end
+            "\n" bfd bputs
+          end
+        end
+        i 1 +
+      end
+    end drop
+  end
+end
+
+proc generate-entry-intel-linux-x86_64
+  ptr // bfd
+in
+  let bfd in
+    "mov [args_ptr], rsp\n" bfd bputs
+    "mov r15, ret_stack+"   bfd bputs
+    X86_64_RET_STACK_CAP    bfd bputu
+    "\n"                    bfd bputs
+
+    "main" proc-lookup-by-name
+    let main-proc in
+      main-proc NULL ptr= if
+        here eputs ": Assertion Failed: type checking phase did not check the existence of `main` procedure" eputs
+        1 exit
+      end
+
+      "call addr"              bfd bputs
+      main-proc Proc.addr ptr+ @int bfd bputu
+      "\n"                          bfd bputs
+    end
+
+    os @ 0 = if "mov rax, 60\n" else "mov rax, 0x2000001\n" end bfd bputs
+    "mov rdi, 0\n"            bfd bputs
+    "syscall\n"               bfd bputs
+  end
+end
+
+proc generate-fasm-linux-x86_64
+  ptr // file-path
+in
+  memory bfd sizeof(Bfd) end
+  sizeof(Bfd) 0 bfd memset drop
+
+  let file-path in
+    silent @ lnot if
+      "[INFO] Generating "  puts
+      file-path cstr-to-str puts
+      "\n"                  puts
+    end
+
+    0o644                          // mode
+    O_CREAT O_WRONLY or O_TRUNC or // flags
+    file-path                      // pathname
+    AT_FDCWD
+    openat
+
+    dup 0 < if
+      "[ERROR] could not open `" eputs
+      file-path cstr-to-str      eputs
+      "`\n"                      eputs
+      1 exit
+    end
+
+    BFD_CAP tmp-alloc
+    let fd buff in
+      fd   bfd Bfd.fd  ptr+ !int
+      buff bfd Bfd.buff ptr+ !ptr
+
+      os @ 0 = if
+        "format ELF64 executable 3\n"   bfd bputs
+        "segment readable executable\n" bfd bputs
+      else
+        "format binary\n"              bfd bputs
+        "use64\n"                     bfd bputs
+        // Mach-O header
+        "dd 0xfeedfacf\n"              bfd bputs
+        "dd 0x01000007\n"              bfd bputs
+        "dd 0x00000003\n"              bfd bputs
+        "dd 2\n"                       bfd bputs
+        "dd 2\n"                       bfd bputs
+        "dd 176\n"                     bfd bputs
+        "dd 0x00218085\n"              bfd bputs
+        "dd 0\n"                       bfd bputs
+        // LC_SEGMENT_64
+        "dd 0x19\n"                    bfd bputs
+        "dd 152\n"                     bfd bputs
+        "db '__TEXT',0,0,0,0,0,0,0,0,0,0\n" bfd bputs
+        "dq 0x100000000\n"             bfd bputs
+        "dq 0x1000\n"                  bfd bputs
+        "dq 0\n"                       bfd bputs
+        "dq filesize\n"                bfd bputs
+        "dd 7\n"                       bfd bputs
+        "dd 5\n"                       bfd bputs
+        "dd 1\n"                       bfd bputs
+        "dd 0\n"                       bfd bputs
+        // section_64 for __text
+        "db '__text',0,0,0,0,0,0,0,0,0,0\n" bfd bputs
+        "db '__TEXT',0,0,0,0,0,0,0,0,0,0\n" bfd bputs
+        "dq 0x100000000 + hdrsize\n"  bfd bputs
+        "dq code_end - code_start\n"   bfd bputs
+        "dd hdrsize\n"                 bfd bputs
+        "dd 2\n"                       bfd bputs
+        "dd 0\n"                       bfd bputs
+        "dd 0\n"                       bfd bputs
+        "dd 0x80000400\n"             bfd bputs
+        "dd 0\n"                       bfd bputs
+        "dd 0\n"                       bfd bputs
+        "dd 0\n"                       bfd bputs
+        // LC_MAIN
+        "dd 0x28\n"                    bfd bputs
+        "dd 24\n"                     bfd bputs
+        "dq start\n"                   bfd bputs
+        "dq 0\n"                       bfd bputs
+        "hdrsize = $\n"                 bfd bputs
+        "code_start:\n"               bfd bputs
+      end
+      bfd generate-print-intel-linux-x86_64
+
+      0 while dup ops-count @ < do
+        dup bfd generate-op-intel-linux-x86_64
+        1 +
+      end drop
+
+      os @ 0 = if
+        "entry start\n"         bfd bputs
+        "start:\n"              bfd bputs
+      else
+        "start:\n"              bfd bputs
+      end
+      bfd generate-entry-intel-linux-x86_64
+
+      os @ 0 = if
+        "segment readable writable\n" bfd bputs
+      else
+        "; data section\n"            bfd bputs
+      end
+      bfd generate-strs-intel-linux-x86_64
+
+      // "segment .bss\n"           bfd bputs
+      os @ 0 = if
+        "args_ptr: rq 1\n"       bfd bputs
+      else
+        "args_ptr: rq 1\n"       bfd bputs
+      end
+      os @ 0 = if
+        "ret_stack: rb "         bfd bputs X86_64_RET_STACK_CAP bfd bputu "\n" bfd bputs
+        "mem: rb "               bfd bputs
+      else
+        "ret_stack: rb "         bfd bputs X86_64_RET_STACK_CAP bfd bputu "\n" bfd bputs
+        "mem: rb "               bfd bputs
+      end      global-memory-capacity @ bfd bputu
+      "\n"                     bfd bputs
+
+      os @ 0 != if
+        "code_end:\n"             bfd bputs
+        "filesize = $\n"           bfd bputs
+      end
+
+      bfd bflush
+      fd close drop
+      buff tmp-rewind
+    end
+  end
+end
+
+proc generate-yasm-linux-x86_64
+  ptr // file-path
+in
+  memory bfd sizeof(Bfd) end
+  sizeof(Bfd) 0 bfd memset drop
+
+  let file-path in
+    silent @ lnot if
+      "[INFO] Generating "  puts
+      file-path cstr-to-str puts
+      "\n"                  puts
+    end
+
+    0o644                          // mode
+    O_CREAT O_WRONLY or O_TRUNC or // flags
+    file-path                      // pathname
+    AT_FDCWD
+    openat
+
+    dup 0 < if
+      "[ERROR] could not open `" eputs
+      file-path cstr-to-str      eputs
+      "`\n"                      eputs
+      1 exit
+    end
+
+    BFD_CAP tmp-alloc
+    let fd buff in
+      fd   bfd Bfd.fd  ptr+ !int
+      buff bfd Bfd.buff ptr+ !ptr
+
+      "BITS 64\n"       bfd bputs
+      "segment .text\n" bfd bputs
+      bfd generate-print-intel-linux-x86_64
+
+      0 while dup ops-count @ < do
+        dup bfd generate-op-intel-linux-x86_64
+        1 +
+      end drop
+
+      "global _start\n"       bfd bputs
+      "_start:\n"             bfd bputs
+      bfd generate-entry-intel-linux-x86_64
+
+      "segment .data\n"         bfd bputs
+      bfd generate-strs-intel-linux-x86_64
+
+      "segment .bss\n"         bfd bputs
+      "args_ptr: resq 1\n"     bfd bputs
+      "ret_stack: resb "       bfd bputs X86_64_RET_STACK_CAP bfd bputu "\n" bfd bputs
+      "mem: resb "             bfd bputs      global-memory-capacity @ bfd bputu
+      "\n"                     bfd bputs
+
+      os @ 0 != if
+        "code_end:\n"             bfd bputs
+        "filesize = $\n"           bfd bputs
+      end
+
+      bfd bflush
+      fd close drop
+      buff tmp-rewind
+    end
+  end
+end
+// AArch64/FASMARM code generator.
+
+const AARCH64_STACK_SIZE 8388608 end
+const AARCH64_RET_STACK_CAP 65536 end
+
+proc generate-print-fasmarm-linux-aarch64
+  ptr // bfd
+in
+  let bfd in
+    "rp_print:\n"                     bfd bputs
+    "sub sp, sp, #48\n"                bfd bputs
+    "add x9, sp, #48\n"                bfd bputs
+    "mov w10, #10\n"                   bfd bputs
+    "strb w10, [x9, #-1]!\n"           bfd bputs
+    "mov x11, #1\n"                    bfd bputs
+    "mov x12, #10\n"                   bfd bputs
+    "rp_print_loop:\n"                 bfd bputs
+    "udiv x13, x0, x12\n"              bfd bputs
+    "msub x14, x13, x12, x0\n"         bfd bputs
+    "add w14, w14, #48\n"              bfd bputs
+    "strb w14, [x9, #-1]!\n"           bfd bputs
+    "add x11, x11, #1\n"               bfd bputs
+    "mov x0, x13\n"                    bfd bputs
+    "cbnz x13, rp_print_loop\n"        bfd bputs
+    "mov x0, #1\n"                     bfd bputs
+    "mov x1, x9\n"                     bfd bputs
+    "mov x2, x11\n"                    bfd bputs
+    "mov x8, #64\n"                    bfd bputs
+    "svc #0\n"                         bfd bputs
+    "add sp, sp, #48\n"                bfd bputs
+    "ret\n"                            bfd bputs
+  end
+end
+
+proc generate-arm-imm-x9
+  int
+  ptr
+in
+  let value bfd in
+    "  movz x9, " bfd bputs value 0xFFFF and bfd bputu "\n" bfd bputs
+    "  movk x9, " bfd bputs value 16 shr 0xFFFF and bfd bputu ", lsl #16\n" bfd bputs
+    "  movk x9, " bfd bputs value 32 shr 0xFFFF and bfd bputu ", lsl #32\n" bfd bputs
+    "  movk x9, " bfd bputs value 48 shr 0xFFFF and bfd bputu ", lsl #48\n" bfd bputs
+  end
+end
+
+proc generate-arm-imm-x10
+  int
+  ptr
+in
+  let value bfd in
+    "  movz x10, " bfd bputs value 0xFFFF and bfd bputu "\n" bfd bputs
+    "  movk x10, " bfd bputs value 16 shr 0xFFFF and bfd bputu ", lsl #16\n" bfd bputs
+    "  movk x10, " bfd bputs value 32 shr 0xFFFF and bfd bputu ", lsl #32\n" bfd bputs
+    "  movk x10, " bfd bputs value 48 shr 0xFFFF and bfd bputu ", lsl #48\n" bfd bputs
+  end
+end
+
+proc generate-arm-symbol-x9
+  int // symbol length
+  ptr // symbol
+  ptr // bfd
+in
+  let n sym bfd in
+    "  movz x9, "      bfd bputs n sym bfd bputs " and 0xffff\n"                  bfd bputs
+    "  movk x9, ("     bfd bputs n sym bfd bputs " shr 16) and 0xffff, lsl #16\n" bfd bputs
+    "  movk x9, ("     bfd bputs n sym bfd bputs " shr 32) and 0xffff, lsl #32\n" bfd bputs
+    "  movk x9, ("     bfd bputs n sym bfd bputs " shr 48) and 0xffff, lsl #48\n" bfd bputs
+  end
+end
+
+proc generate-arm-push-x9
+  ptr // bfd
+in
+  let bfd in
+    "  str x9, [x19, #-8]!\n" bfd bputs
+  end
+end
+
+proc generate-arm-pop-x9
+  ptr // bfd
+in
+  let bfd in
+    "  ldr x9, [x19], #8\n" bfd bputs
+  end
+end
+
+proc generate-arm-load-stack-x9
+  int // index
+  ptr // bfd
+in
+  let i bfd in
+    i 0 = if
+      "  ldr x9, [x19]\n" bfd bputs
+    else
+      "  ldr x9, [x19, #" bfd bputs i 8 * bfd bputu "]\n" bfd bputs
+    end
+  end
+end
+
+proc generate-arm-store-stack-x9
+  int // index
+  ptr // bfd
+in
+  let i bfd in
+    i 0 = if
+      "  str x9, [x19]\n" bfd bputs
+    else
+      "  str x9, [x19, #" bfd bputs i 8 * bfd bputu "]\n" bfd bputs
+    end
+  end
+end
+
+proc generate-arm-ret-address-x9
+  int // offset from x21
+  ptr // bfd
+in
+  let off bfd in
+    off 0 = if
+      "  mov x9, x21\n" bfd bputs
+    else
+      off bfd generate-arm-imm-x10
+      "  add x9, x21, x10\n" bfd bputs
+    end
+  end
+end
+
+proc generate-arm-load-ret-x9
+  int // offset from x21
+  ptr // bfd
+in
+  let off bfd in
+    off bfd generate-arm-ret-address-x9
+    "  ldr x9, [x9]\n" bfd bputs
+  end
+end
+
+proc generate-arm-store-ret-x9
+  int // offset from x21
+  ptr // bfd
+in
+  let off bfd in
+    off 0 = if
+      "  str x9, [x21]\n" bfd bputs
+    else
+      off bfd generate-arm-imm-x10
+      "  add x10, x21, x10\n" bfd bputs
+      "  str x9, [x10]\n" bfd bputs
+    end
+  end
+end
+
+proc generate-arm-add-x21
+  int // amount
+  ptr // bfd
+in
+  let amount bfd in
+    amount 0 = if
+    else amount 4095 < if
+      "  add x21, x21, #" bfd bputs amount bfd bputu "\n" bfd bputs
+    else
+      amount bfd generate-arm-imm-x9
+      "  add x21, x21, x9\n" bfd bputs
+    end end
+  end
+end
+
+proc generate-arm-sub-x21
+  int // amount
+  ptr // bfd
+in
+  let amount bfd in
+    amount 0 = if
+    else amount 4095 < if
+      "  sub x21, x21, #" bfd bputs amount bfd bputu "\n" bfd bputs
+    else
+      amount bfd generate-arm-imm-x9
+      "  sub x21, x21, x9\n" bfd bputs
+    end end
+  end
+end
+
+proc generate-arm-add-x9
+  int // amount
+  ptr // bfd
+in
+  let amount bfd in
+    amount 0 = if
+    else amount 4095 < if
+      "  add x9, x9, #" bfd bputs amount bfd bputu "\n" bfd bputs
+    else
+      amount bfd generate-arm-imm-x10
+      "  add x9, x9, x10\n" bfd bputs
+    end end
+  end
+end
+
+proc generate-arm-global-address-x9
+  int // offset
+  ptr // bfd
+in
+  let off bfd in
+    "mem" bfd generate-arm-symbol-x9
+    off bfd generate-arm-add-x9
+  end
+end
+
+proc generate-arm-syscall-map
+  ptr // bfd
+in
+  let bfd in
+    "rp_syscall_map:\n"                            bfd bputs
+    "rp_syscall_table" bfd generate-arm-symbol-x9
+    "  movz x10, rp_syscall_table_end and 0xffff\n" bfd bputs
+    "  movk x10, (rp_syscall_table_end shr 16) and 0xffff, lsl #16\n" bfd bputs
+    "  movk x10, (rp_syscall_table_end shr 32) and 0xffff, lsl #32\n" bfd bputs
+    "  movk x10, (rp_syscall_table_end shr 48) and 0xffff, lsl #48\n" bfd bputs
+    // NOTE: fasmarm's `dd` emits 8 bytes per value, so every pair of
+    // `dd x86, aarch64` in rp_syscall_table occupies 16 bytes: the x86
+    // number at +0 and the AArch64 number at +8.
+    "rp_syscall_loop:\n"                           bfd bputs
+    "  ldr w11, [x9]\n"                            bfd bputs
+    "  cmp w8, w11\n"                              bfd bputs
+    "  b.eq rp_syscall_found\n"                    bfd bputs
+    "  add x9, x9, #16\n"                         bfd bputs
+    "  cmp x9, x10\n"                              bfd bputs
+    "  b.lo rp_syscall_loop\n"                     bfd bputs
+    "  b rp_syscall_done\n"                        bfd bputs
+    "rp_syscall_found:\n"                          bfd bputs
+    "  ldr w8, [x9, #8]\n"                        bfd bputs
+    "rp_syscall_done:\n"                           bfd bputs
+    "  ret\n"                                      bfd bputs
+  end
+end
+
+proc generate-op-fasmarm-linux-aarch64
+  int // ip
+  ptr // bfd
+in
+  let ip bfd in
+    ip sizeof(Op) * ops +ptr
+    let op in
+      op Op.label ptr+ @bool if
+        "rp_addr" bfd bputs ip bfd bputu ":\n" bfd bputs
+      end
+
+      annotate @ if
+        op bfd generate-op-comment
+      end
+
+      op Op.type ptr+ @int
+      op Op.operand ptr+ @int
+      let type operand in
+        assert "Exhaustive handling of Op types in generate-op-fasmarm-linux-aarch64" COUNT_OPS 28 = end
+        type OP_PUSH_INT = if
+          operand bfd generate-arm-imm-x9
+          bfd generate-arm-push-x9
+        else type OP_PUSH_BOOL = if*
+          operand bfd generate-arm-imm-x9
+          bfd generate-arm-push-x9
+        else type OP_PUSH_PTR = if*
+          operand bfd generate-arm-imm-x9
+          bfd generate-arm-push-x9
+        else type OP_PUSH_ADDR_OF = if*
+          "  movz x9, rp_addr" bfd bputs
+          operand sizeof(Proc) * procs +ptr Proc.addr ptr+ @int bfd bputu
+          " and 0xffff\n" bfd bputs
+          "  movk x9, (rp_addr" bfd bputs
+          operand sizeof(Proc) * procs +ptr Proc.addr ptr+ @int bfd bputu
+          " shr 16) and 0xffff, lsl #16\n" bfd bputs
+          "  movk x9, (rp_addr" bfd bputs
+          operand sizeof(Proc) * procs +ptr Proc.addr ptr+ @int bfd bputu
+          " shr 32) and 0xffff, lsl #32\n" bfd bputs
+          "  movk x9, (rp_addr" bfd bputs
+          operand sizeof(Proc) * procs +ptr Proc.addr ptr+ @int bfd bputu
+          " shr 48) and 0xffff, lsl #48\n" bfd bputs
+          bfd generate-arm-push-x9
+        else type OP_CALL_LIKE = if*
+          bfd generate-arm-pop-x9
+          "  blr x9\n" bfd bputs
+        else type OP_BIND_LET = if*
+          operand 8 * bfd generate-arm-sub-x21
+          operand
+          while dup 0 > do
+            bfd generate-arm-pop-x9
+            dup 1 - 8 * bfd generate-arm-store-ret-x9
+            1 -
+          end drop
+        else type OP_BIND_PEEK = if*
+          operand 8 * bfd generate-arm-sub-x21
+          0
+          operand
+          while over over < do
+            let i n in
+              i bfd generate-arm-load-stack-x9
+              n i - 1 - 8 * bfd generate-arm-store-ret-x9
+              i 1 +
+              n
+            end
+          end
+          drop
+          drop
+        else type OP_UNBIND = if*
+          operand 8 * bfd generate-arm-add-x21
+        else type OP_PUSH_BIND = if*
+          operand 8 * bfd generate-arm-load-ret-x9
+          bfd generate-arm-push-x9
+        else type OP_PUSH_LOCAL_MEM = if*
+          operand bfd generate-arm-ret-address-x9
+          bfd generate-arm-push-x9
+        else type OP_PUSH_GLOBAL_MEM = if*
+          operand bfd generate-arm-global-address-x9
+          bfd generate-arm-push-x9
+        else type OP_PUSH_GLOBAL_VAR = if*
+          operand sizeof(Var) * global-vars +ptr Var.offset ptr+ @int
+          bfd generate-arm-global-address-x9
+          bfd generate-arm-push-x9
+        else type OP_PUSH_LOCAL_VAR = if*
+          operand
+          32 shr
+          0xFFFF_FFFF and bfd generate-arm-ret-address-x9
+          bfd generate-arm-push-x9
+        else type OP_PUSH_STR = if*
+          operand
+          sizeof(Strlit) *
+          strlits   +ptr
+          Strlit.str ptr+
+          Str.count  ptr+
+          @int bfd generate-arm-imm-x9
+          bfd generate-arm-push-x9
+          "  movz x9, rp_str" bfd bputs operand bfd bputu " and 0xffff\n" bfd bputs
+          "  movk x9, (rp_str" bfd bputs operand bfd bputu " shr 16) and 0xffff, lsl #16\n" bfd bputs
+          "  movk x9, (rp_str" bfd bputs operand bfd bputu " shr 32) and 0xffff, lsl #32\n" bfd bputs
+          "  movk x9, (rp_str" bfd bputs operand bfd bputu " shr 48) and 0xffff, lsl #48\n" bfd bputs
+          bfd generate-arm-push-x9
+        else type OP_PUSH_CSTR = if*
+          "  movz x9, rp_str" bfd bputs operand bfd bputu " and 0xffff\n" bfd bputs
+          "  movk x9, (rp_str" bfd bputs operand bfd bputu " shr 16) and 0xffff, lsl #16\n" bfd bputs
+          "  movk x9, (rp_str" bfd bputs operand bfd bputu " shr 32) and 0xffff, lsl #32\n" bfd bputs
+          "  movk x9, (rp_str" bfd bputs operand bfd bputu " shr 48) and 0xffff, lsl #48\n" bfd bputs
+          bfd generate-arm-push-x9
+        else type OP_IF = if*
+          bfd generate-arm-pop-x9
+          "  cbz x9, rp_addr" bfd bputs ip operand + bfd bputu "\n" bfd bputs
+        else type OP_IFSTAR = if*
+          bfd generate-arm-pop-x9
+          "  cbz x9, rp_addr" bfd bputs ip operand + bfd bputu "\n" bfd bputs
+        else type OP_ELSE = if*
+          "  b rp_addr" bfd bputs ip operand + bfd bputu "\n" bfd bputs
+        else type OP_END_WHILE = if*
+          "  b rp_addr" bfd bputs ip operand - bfd bputu "\n" bfd bputs
+        else type OP_END_IF = if*
+          // nothing
+        else type OP_WHILE = if*
+          // nothing
+        else type OP_DO = if*
+          bfd generate-arm-pop-x9
+          "  cbz x9, rp_addr" bfd bputs ip operand + bfd bputu "\n" bfd bputs
+        else type OP_PREP_PROC = if*
+          "  str x30, [x21, #-8]!\n" bfd bputs
+          operand bfd generate-arm-sub-x21
+        else type OP_RET = if*
+          operand bfd generate-arm-add-x21
+          "  ldr x30, [x21], #8\n" bfd bputs
+          "  ret\n" bfd bputs
+        else type OP_CALL = if*
+          "  bl rp_addr" bfd bputs
+          operand sizeof(Proc) * procs +ptr Proc.addr ptr+ @int bfd bputu
+          "\n" bfd bputs
+        else type OP_INLINED = if*
+          // ignored
+        else type OP_CAST = if*
+          // ignored
+        else type OP_INTRINSIC = if*
+          assert "Exhaustive handling of Intrinsics in generate-op-fasmarm-linux-aarch64" COUNT_INTRINSICS 48 = end
+          operand INTRINSIC_PLUS = if
+            bfd generate-arm-pop-x9
+            "  ldr x10, [x19]\n" bfd bputs
+            "  add x10, x10, x9\n" bfd bputs
+            "  str x10, [x19]\n" bfd bputs
+          else operand INTRINSIC_MINUS = if*
+            bfd generate-arm-pop-x9
+            "  ldr x10, [x19]\n" bfd bputs
+            "  sub x10, x10, x9\n" bfd bputs
+            "  str x10, [x19]\n" bfd bputs
+          else operand INTRINSIC_MUL = if*
+            bfd generate-arm-pop-x9
+            "  ldr x10, [x19]\n" bfd bputs
+            "  mul x10, x10, x9\n" bfd bputs
+            "  str x10, [x19]\n" bfd bputs
+          else operand INTRINSIC_DIVMOD = if*
+            "  ldr x9, [x19], #8\n" bfd bputs
+            "  ldr x10, [x19], #8\n" bfd bputs
+            "  udiv x11, x10, x9\n" bfd bputs
+            "  msub x12, x11, x9, x10\n" bfd bputs
+            "  mov x9, x11\n" bfd bputs
+            bfd generate-arm-push-x9
+            "  mov x9, x12\n" bfd bputs
+            bfd generate-arm-push-x9
+          else operand INTRINSIC_IDIVMOD = if*
+            "  ldr x9, [x19], #8\n" bfd bputs
+            "  ldr x10, [x19], #8\n" bfd bputs
+            "  sdiv x11, x10, x9\n" bfd bputs
+            "  msub x12, x11, x9, x10\n" bfd bputs
+            "  mov x9, x11\n" bfd bputs
+            bfd generate-arm-push-x9
+            "  mov x9, x12\n" bfd bputs
+            bfd generate-arm-push-x9
+          else operand INTRINSIC_MAX = if*
+            bfd generate-arm-pop-x9
+            "  ldr x10, [x19]\n" bfd bputs
+            "  cmp x10, x9\n" bfd bputs
+            "  csel x10, x9, x10, lt\n" bfd bputs
+            "  str x10, [x19]\n" bfd bputs
+          else operand INTRINSIC_SHR = if*
+            bfd generate-arm-pop-x9
+            "  ldr x10, [x19]\n" bfd bputs
+            "  lsr x10, x10, x9\n" bfd bputs
+            "  str x10, [x19]\n" bfd bputs
+          else operand INTRINSIC_SHL = if*
+            bfd generate-arm-pop-x9
+            "  ldr x10, [x19]\n" bfd bputs
+            "  lsl x10, x10, x9\n" bfd bputs
+            "  str x10, [x19]\n" bfd bputs
+          else operand INTRINSIC_OR = if*
+            bfd generate-arm-pop-x9
+            "  ldr x10, [x19]\n" bfd bputs
+            "  orr x10, x10, x9\n" bfd bputs
+            "  str x10, [x19]\n" bfd bputs
+          else operand INTRINSIC_AND = if*
+            bfd generate-arm-pop-x9
+            "  ldr x10, [x19]\n" bfd bputs
+            "  and x10, x10, x9\n" bfd bputs
+            "  str x10, [x19]\n" bfd bputs
+          else operand INTRINSIC_NOT = if*
+            "  ldr x9, [x19]\n" bfd bputs
+            "  mvn x9, x9\n" bfd bputs
+            "  str x9, [x19]\n" bfd bputs
+          else operand INTRINSIC_PRINT = if*
+            "  ldr x0, [x19], #8\n" bfd bputs
+            "  bl rp_print\n" bfd bputs
+          else operand INTRINSIC_EQ = if*
+            bfd generate-arm-pop-x9
+            "  ldr x10, [x19]\n" bfd bputs
+            "  cmp x10, x9\n" bfd bputs
+            "  cset x10, eq\n" bfd bputs
+            "  str x10, [x19]\n" bfd bputs
+          else operand INTRINSIC_GT = if*
+            bfd generate-arm-pop-x9
+            "  ldr x10, [x19]\n" bfd bputs
+            "  cmp x10, x9\n" bfd bputs
+            "  cset x10, gt\n" bfd bputs
+            "  str x10, [x19]\n" bfd bputs
+          else operand INTRINSIC_LT = if*
+            bfd generate-arm-pop-x9
+            "  ldr x10, [x19]\n" bfd bputs
+            "  cmp x10, x9\n" bfd bputs
+            "  cset x10, lt\n" bfd bputs
+            "  str x10, [x19]\n" bfd bputs
+          else operand INTRINSIC_GE = if*
+            bfd generate-arm-pop-x9
+            "  ldr x10, [x19]\n" bfd bputs
+            "  cmp x10, x9\n" bfd bputs
+            "  cset x10, ge\n" bfd bputs
+            "  str x10, [x19]\n" bfd bputs
+          else operand INTRINSIC_LE = if*
+            bfd generate-arm-pop-x9
+            "  ldr x10, [x19]\n" bfd bputs
+            "  cmp x10, x9\n" bfd bputs
+            "  cset x10, le\n" bfd bputs
+            "  str x10, [x19]\n" bfd bputs
+          else operand INTRINSIC_NE = if*
+            bfd generate-arm-pop-x9
+            "  ldr x10, [x19]\n" bfd bputs
+            "  cmp x10, x9\n" bfd bputs
+            "  cset x10, ne\n" bfd bputs
+            "  str x10, [x19]\n" bfd bputs
+          else operand INTRINSIC_DUP = if*
+            "  ldr x9, [x19]\n" bfd bputs
+            bfd generate-arm-push-x9
+          else operand INTRINSIC_SWAP = if*
+            "  ldr x9, [x19]\n" bfd bputs
+            "  ldr x10, [x19, #8]\n" bfd bputs
+            "  str x10, [x19]\n" bfd bputs
+            "  str x9, [x19, #8]\n" bfd bputs
+          else operand INTRINSIC_DROP = if*
+            "  add x19, x19, #8\n" bfd bputs
+          else operand INTRINSIC_OVER = if*
+            "  ldr x9, [x19, #8]\n" bfd bputs
+            bfd generate-arm-push-x9
+          else operand INTRINSIC_ROT = if*
+            "  ldr x9, [x19], #8\n" bfd bputs
+            "  ldr x10, [x19], #8\n" bfd bputs
+            "  ldr x11, [x19], #8\n" bfd bputs
+            "  str x10, [x19, #-8]!\n" bfd bputs
+            "  str x9, [x19, #-8]!\n" bfd bputs
+            "  str x11, [x19, #-8]!\n" bfd bputs
+          else operand INTRINSIC_LOAD8 = if*
+            "  ldr x9, [x19], #8\n" bfd bputs
+            "  ldrb w9, [x9]\n" bfd bputs
+            bfd generate-arm-push-x9
+          else operand INTRINSIC_STORE8 = if*
+            "  ldr x9, [x19], #8\n" bfd bputs
+            "  ldr x10, [x19], #8\n" bfd bputs
+            "  strb w10, [x9]\n" bfd bputs
+          else operand INTRINSIC_LOAD16 = if*
+            "  ldr x9, [x19], #8\n" bfd bputs
+            "  ldrh w9, [x9]\n" bfd bputs
+            bfd generate-arm-push-x9
+          else operand INTRINSIC_STORE16 = if*
+            "  ldr x9, [x19], #8\n" bfd bputs
+            "  ldr x10, [x19], #8\n" bfd bputs
+            "  strh w10, [x9]\n" bfd bputs
+          else operand INTRINSIC_LOAD32 = if*
+            "  ldr x9, [x19], #8\n" bfd bputs
+            "  ldr w9, [x9]\n" bfd bputs
+            bfd generate-arm-push-x9
+          else operand INTRINSIC_STORE32 = if*
+            "  ldr x9, [x19], #8\n" bfd bputs
+            "  ldr x10, [x19], #8\n" bfd bputs
+            "  str w10, [x9]\n" bfd bputs
+          else operand INTRINSIC_LOAD64 = if*
+            "  ldr x9, [x19], #8\n" bfd bputs
+            "  ldr x9, [x9]\n" bfd bputs
+            bfd generate-arm-push-x9
+          else operand INTRINSIC_LOAD_PTR_TO = if*
+            "  ldr x9, [x19], #8\n" bfd bputs
+            "  ldr x9, [x9]\n" bfd bputs
+            bfd generate-arm-push-x9
+          else operand INTRINSIC_STORE_PTR_TO = if*
+            "  ldr x9, [x19], #8\n" bfd bputs
+            "  ldr x10, [x19], #8\n" bfd bputs
+            "  str x10, [x9]\n" bfd bputs
+          else operand INTRINSIC_STORE64 = if*
+            "  ldr x9, [x19], #8\n" bfd bputs
+            "  ldr x10, [x19], #8\n" bfd bputs
+            "  str x10, [x9]\n" bfd bputs
+          else operand INTRINSIC_ARGC = if*
+            "  ldr x9, [x20]\n" bfd bputs
+            bfd generate-arm-push-x9
+          else operand INTRINSIC_ARGV = if*
+            "  add x9, x20, #8\n" bfd bputs
+            bfd generate-arm-push-x9
+          else operand INTRINSIC_ENVP = if*
+            "  ldr x9, [x20]\n" bfd bputs
+            "  add x9, x9, #2\n" bfd bputs
+            "  lsl x9, x9, #3\n" bfd bputs
+            "  add x9, x20, x9\n" bfd bputs
+            bfd generate-arm-push-x9
+          else operand INTRINSIC_SYSCALL0 = if*
+            "  ldr x8, [x19], #8\n" bfd bputs
+            "  bl rp_syscall_map\n" bfd bputs
+            "  svc #0\n" bfd bputs
+            "  str x0, [x19, #-8]!\n" bfd bputs
+          else operand INTRINSIC_SYSCALL1 = if*
+            "  ldr x8, [x19], #8\n" bfd bputs
+            "  ldr x0, [x19], #8\n" bfd bputs
+            "  bl rp_syscall_map\n" bfd bputs
+            "  svc #0\n" bfd bputs
+            "  str x0, [x19, #-8]!\n" bfd bputs
+          else operand INTRINSIC_SYSCALL2 = if*
+            "  ldr x8, [x19], #8\n" bfd bputs
+            "  ldr x0, [x19], #8\n" bfd bputs
+            "  ldr x1, [x19], #8\n" bfd bputs
+            "  bl rp_syscall_map\n" bfd bputs
+            "  svc #0\n" bfd bputs
+            "  str x0, [x19, #-8]!\n" bfd bputs
+          else operand INTRINSIC_SYSCALL3 = if*
+            "  ldr x8, [x19], #8\n" bfd bputs
+            "  ldr x0, [x19], #8\n" bfd bputs
+            "  ldr x1, [x19], #8\n" bfd bputs
+            "  ldr x2, [x19], #8\n" bfd bputs
+            "  bl rp_syscall_map\n" bfd bputs
+            "  svc #0\n" bfd bputs
+            "  str x0, [x19, #-8]!\n" bfd bputs
+          else operand INTRINSIC_SYSCALL4 = if*
+            "  ldr x8, [x19], #8\n" bfd bputs
+            "  ldr x0, [x19], #8\n" bfd bputs
+            "  ldr x1, [x19], #8\n" bfd bputs
+            "  ldr x2, [x19], #8\n" bfd bputs
+            "  ldr x3, [x19], #8\n" bfd bputs
+            "  bl rp_syscall_map\n" bfd bputs
+            "  svc #0\n" bfd bputs
+            "  str x0, [x19, #-8]!\n" bfd bputs
+          else operand INTRINSIC_SYSCALL5 = if*
+            "  ldr x8, [x19], #8\n" bfd bputs
+            "  ldr x0, [x19], #8\n" bfd bputs
+            "  ldr x1, [x19], #8\n" bfd bputs
+            "  ldr x2, [x19], #8\n" bfd bputs
+            "  ldr x3, [x19], #8\n" bfd bputs
+            "  ldr x4, [x19], #8\n" bfd bputs
+            "  bl rp_syscall_map\n" bfd bputs
+            "  svc #0\n" bfd bputs
+            "  str x0, [x19, #-8]!\n" bfd bputs
+          else operand INTRINSIC_SYSCALL6 = if*
+            "  ldr x8, [x19], #8\n" bfd bputs
+            "  ldr x0, [x19], #8\n" bfd bputs
+            "  ldr x1, [x19], #8\n" bfd bputs
+            "  ldr x2, [x19], #8\n" bfd bputs
+            "  ldr x3, [x19], #8\n" bfd bputs
+            "  ldr x4, [x19], #8\n" bfd bputs
+            "  ldr x5, [x19], #8\n" bfd bputs
+            "  bl rp_syscall_map\n" bfd bputs
+            "  svc #0\n" bfd bputs
+            "  str x0, [x19, #-8]!\n" bfd bputs
+          else operand INTRINSIC_CAST_PTR = if*
+          else operand INTRINSIC_CAST_INT = if*
+          else operand INTRINSIC_CAST_BOOL = if*
+          else operand INTRINSIC_CAST_ADDR = if*
+          else operand INTRINSIC_??? = if*
+          else
+            here eputs ": unreachable. Invalid intrinsic.\n" eputs
+            1 exit
+          end
+        else
+          here eputs ": unreachable. Invalid op.\n" eputs
+          1 exit
+        end
+      end
+    end
+  end
+end
+
+proc generate-strs-fasmarm-linux-aarch64
+  ptr // bfd
+in
+  let bfd in
+    0 while dup strlits-count @ < do
+      let i in
+        i sizeof(Strlit) *
+        strlits   +ptr
+
+        dup Strlit.used ptr+ @bool swap
+        dup Strlit.str  ptr+ @Str  rot
+        drop
+        let used n s in
+          used if
+            "rp_str" bfd bputs
+            i        bfd bputu
+            ":"      bfd bputs
+            n 0 > if
+              " db " bfd bputs
+              n s    bfd bputdecstr
+            end
+            "\n" bfd bputs
+          end
+        end
+        i 1 +
+      end
+    end drop
+  end
+end
+
+proc generate-entry-fasmarm-linux-aarch64
+  ptr // bfd
+in
+  let bfd in
+    "  mov x20, sp\n" bfd bputs
+    "dstack_end" bfd generate-arm-symbol-x9
+    "  mov x19, x9\n" bfd bputs
+    "ret_stack_end" bfd generate-arm-symbol-x9
+    "  mov x21, x9\n" bfd bputs
+
+    "main" proc-lookup-by-name
+    let main-proc in
+      main-proc NULL ptr= if
+        here eputs ": Assertion Failed: type checking phase did not check the existence of `main` procedure" eputs
+        1 exit
+      end
+
+      "  bl rp_addr" bfd bputs
+      main-proc Proc.addr ptr+ @int bfd bputu
+      "\n" bfd bputs
+    end
+
+    "  mov x8, #93\n" bfd bputs
+    "  mov x0, #0\n"  bfd bputs
+    "  svc #0\n"      bfd bputs
+  end
+end
+
+proc generate-fasmarm-linux-aarch64
+  ptr // file-path
+in
+  memory bfd sizeof(Bfd) end
+  sizeof(Bfd) 0 bfd memset drop
+
+  let file-path in
+    silent @ lnot if
+      "[INFO] Generating "  puts
+      file-path cstr-to-str puts
+      "\n"                  puts
+    end
+
+    0o644                          // mode
+    O_CREAT O_WRONLY or O_TRUNC or // flags
+    file-path                      // pathname
+    AT_FDCWD
+    openat
+
+    dup 0 < if
+      "[ERROR] could not open `" eputs
+      file-path cstr-to-str      eputs
+      "`\n"                      eputs
+      1 exit
+    end
+
+    BFD_CAP tmp-alloc
+    let fd buff in
+      fd   bfd Bfd.fd  ptr+ !int
+      buff bfd Bfd.buff ptr+ !ptr
+
+      "format ELF64 executable 3\n"  bfd bputs
+      "processor cpu64_v8\n"         bfd bputs
+      "code64\n"                     bfd bputs
+      "entry rp_start\n"             bfd bputs
+      "segment readable executable\n" bfd bputs
+      "rp_start:\n"                  bfd bputs
+      bfd generate-entry-fasmarm-linux-aarch64
+      bfd generate-print-fasmarm-linux-aarch64
+      bfd generate-arm-syscall-map
+
+      0 while dup ops-count @ < do
+        dup bfd generate-op-fasmarm-linux-aarch64
+        1 +
+      end drop
+
+      "segment readable\n" bfd bputs
+      "align 8\n" bfd bputs
+      "rp_syscall_table:\n" bfd bputs
+      "dd 0, 63\n" bfd bputs
+      "dd 1, 64\n" bfd bputs
+      "dd 3, 57\n" bfd bputs
+      "dd 5, 80\n" bfd bputs
+      "dd 8, 62\n" bfd bputs
+      "dd 9, 222\n" bfd bputs
+      "dd 10, 226\n" bfd bputs
+      "dd 11, 215\n" bfd bputs
+      "dd 12, 214\n" bfd bputs
+      "dd 13, 134\n" bfd bputs
+      "dd 14, 135\n" bfd bputs
+      "dd 15, 139\n" bfd bputs
+      "dd 16, 29\n" bfd bputs
+      "dd 19, 65\n" bfd bputs
+      "dd 20, 66\n" bfd bputs
+      "dd 32, 23\n" bfd bputs
+      "dd 35, 101\n" bfd bputs
+      "dd 39, 172\n" bfd bputs
+      "dd 41, 198\n" bfd bputs
+      "dd 42, 203\n" bfd bputs
+      "dd 43, 202\n" bfd bputs
+      "dd 46, 211\n" bfd bputs
+      "dd 47, 212\n" bfd bputs
+      "dd 48, 210\n" bfd bputs
+      "dd 49, 200\n" bfd bputs
+      "dd 50, 201\n" bfd bputs
+      "dd 51, 204\n" bfd bputs
+      "dd 52, 205\n" bfd bputs
+      "dd 53, 199\n" bfd bputs
+      "dd 54, 208\n" bfd bputs
+      "dd 55, 209\n" bfd bputs
+      "dd 59, 221\n" bfd bputs
+      "dd 60, 93\n" bfd bputs
+      "dd 61, 260\n" bfd bputs
+      "dd 62, 129\n" bfd bputs
+      "dd 63, 160\n" bfd bputs
+      "dd 72, 25\n" bfd bputs
+      "dd 74, 82\n" bfd bputs
+      "dd 75, 83\n" bfd bputs
+      "dd 76, 45\n" bfd bputs
+      "dd 77, 46\n" bfd bputs
+      "dd 79, 17\n" bfd bputs
+      "dd 80, 49\n" bfd bputs
+      "dd 81, 50\n" bfd bputs
+      "dd 85, 85\n" bfd bputs
+      "dd 89, 78\n" bfd bputs
+      "dd 96, 169\n" bfd bputs
+      "dd 98, 165\n" bfd bputs
+      "dd 99, 179\n" bfd bputs
+      "dd 102, 174\n" bfd bputs
+      "dd 104, 176\n" bfd bputs
+      "dd 107, 175\n" bfd bputs
+      "dd 108, 177\n" bfd bputs
+      "dd 110, 173\n" bfd bputs
+      "dd 112, 157\n" bfd bputs
+      "dd 115, 158\n" bfd bputs
+      "dd 116, 159\n" bfd bputs
+      "dd 121, 155\n" bfd bputs
+      "dd 124, 156\n" bfd bputs
+      "dd 129, 132\n" bfd bputs
+      "dd 145, 160\n" bfd bputs
+      "dd 161, 51\n" bfd bputs
+      "dd 175, 273\n" bfd bputs
+      "dd 186, 178\n" bfd bputs
+      "dd 202, 98\n" bfd bputs
+      "dd 217, 61\n" bfd bputs
+      "dd 228, 113\n" bfd bputs
+      "dd 230, 115\n" bfd bputs
+      "dd 231, 94\n" bfd bputs
+      "dd 232, 22\n" bfd bputs
+      "dd 233, 21\n" bfd bputs
+      "dd 234, 131\n" bfd bputs
+      "dd 257, 56\n" bfd bputs
+      "dd 262, 79\n" bfd bputs
+      "dd 264, 38\n" bfd bputs
+      "dd 268, 53\n" bfd bputs
+      "dd 271, 72\n" bfd bputs
+      "dd 273, 99\n" bfd bputs
+      "dd 274, 100\n" bfd bputs
+      "dd 280, 88\n" bfd bputs
+      "dd 288, 242\n" bfd bputs
+      "dd 290, 19\n" bfd bputs
+      "dd 291, 20\n" bfd bputs
+      "dd 293, 59\n" bfd bputs
+      "dd 294, 26\n" bfd bputs
+      "dd 299, 243\n" bfd bputs
+      "dd 307, 269\n" bfd bputs
+      "dd 318, 270\n" bfd bputs
+      "dd 334, 279\n" bfd bputs
+      "rp_syscall_table_end:\n" bfd bputs
+      bfd generate-strs-fasmarm-linux-aarch64
+
+      "segment readable writeable\n" bfd bputs
+      "align 8\n"                    bfd bputs
+      "rp_data_guard: dd 0\n"        bfd bputs
+      "align 8\n"                    bfd bputs
+      "dstack: rb " bfd bputs AARCH64_STACK_SIZE bfd bputu "\n" bfd bputs
+      "dstack_end:\n"                bfd bputs
+      "align 8\n"                    bfd bputs
+      "ret_stack: rb " bfd bputs AARCH64_RET_STACK_CAP bfd bputu "\n" bfd bputs
+      "ret_stack_end:\n"             bfd bputs
+      "align 8\n"                    bfd bputs
+      "mem: rb " bfd bputs      global-memory-capacity @ bfd bputu
+      "\n"                     bfd bputs
+
+      os @ 0 != if
+        "code_end:\n"             bfd bputs
+        "filesize = $\n"           bfd bputs
+      end
+
+      bfd bflush
+      fd close drop
+      buff tmp-rewind
+    end
+  end
+end
+
+// Portable C code generator.
+//
+// The generated program mirrors the native backends: `rp_sp` is the data
+// stack (grows downwards), `rp_rsp` holds procedure frames and `let` slots,
+// and every Porth procedure becomes a C function.
+//
+// Syscalls are the platform layer: std/linux.porth speaks the x86_64 Linux
+// table on every host, and the emitted runtime dispatches it per OS.  Linux
+// issues `syscall(2)` directly and translates the numbers for other
+// architectures, Darwin (where `syscall(2)` is unavailable on arm64) calls
+// libc, and Windows maps the calls that have a CRT/Win32 equivalent.  Only
+// call numbers are ported that way: struct layouts, flag bits and errno
+// values still come from std/linux.porth, so a program that inspects them
+// needs a per-OS std module.
+
+proc generate-c-strs
+  ptr // bfd
+in
+  let bfd in
+    0 while dup strlits-count @ < do
+      let i in
+        i sizeof(Strlit) *
+        strlits   +ptr
+
+        dup Strlit.used ptr+ @bool swap
+        dup Strlit.str  ptr+ @Str  rot
+        drop
+        let used n s in
+          used if
+            "static const unsigned char rp_str" bfd bputs
+            i bfd bputu
+            "[] = { " bfd bputs
+            n 0 > if
+              n s bfd bputdecstr
+              ", " bfd bputs
+            end
+            "0 };\n" bfd bputs
+          end
+        end
+        i 1 +
+      end
+    end drop
+  end
+end
+
+proc generate-c-preamble
+  ptr // bfd
+in
+  let bfd in
+    "/* Generated by the Porth compiler. */\n" bfd bputs
+    "#include <stdint.h>\n"                    bfd bputs
+    "\n"                                       bfd bputs
+    "/* Platform layer.  std/linux.porth numbers its syscalls with the\n" bfd bputs
+    "   x86_64 Linux table, so that is the ABI this runtime receives on\n" bfd bputs
+    "   every host.  Linux issues the syscall directly, Darwin calls libc\n" bfd bputs
+    "   (Apple no longer supports syscall(2) on arm64) and Windows uses the\n" bfd bputs
+    "   CRT/Win32.  The struct layouts, flag bits and errno values the program\n" bfd bputs
+    "   was compiled against come from std/<os>/os.porth and are checked\n" bfd bputs
+    "   against this host's headers below. */\n" bfd bputs
+    "#if defined(_WIN32)\n"                    bfd bputs
+    "#  define RP_OS_WIN32 1\n"                bfd bputs
+    "#  define RP_OS_ID 2\n"                    bfd bputs
+    "#  include <stdio.h>\n"                    bfd bputs
+    "#  include <stddef.h>\n"                   bfd bputs
+    "#  include <io.h>\n"                       bfd bputs
+    "#  include <direct.h>\n"                   bfd bputs
+    "#  include <fcntl.h>\n"                    bfd bputs
+    "#  include <errno.h>\n"                    bfd bputs
+    "#  include <sys/stat.h>\n"                 bfd bputs
+    "#  include <string.h>\n"                   bfd bputs
+    "#  include <windows.h>\n"                  bfd bputs
+    "#elif defined(__APPLE__)\n"                bfd bputs
+    "#  define RP_OS_DARWIN 1\n"               bfd bputs
+    "#  define RP_OS_ID 1\n"                    bfd bputs
+    "#  include <stdio.h>\n"                    bfd bputs
+    "#  include <stddef.h>\n"                   bfd bputs
+    "#  include <unistd.h>\n"                   bfd bputs
+    "#  include <errno.h>\n"                    bfd bputs
+    "#  include <fcntl.h>\n"                    bfd bputs
+    "#  include <termios.h>\n"                  bfd bputs
+    "#  include <time.h>\n"                     bfd bputs
+    "#  include <netinet/in.h>\n"               bfd bputs
+    "#  include <sys/ioctl.h>\n"                bfd bputs
+    "#  include <sys/mman.h>\n"                 bfd bputs
+    "#  include <sys/resource.h>\n"             bfd bputs
+    "#  include <sys/socket.h>\n"               bfd bputs
+    "#  include <sys/stat.h>\n"                 bfd bputs
+    "#  include <sys/time.h>\n"                 bfd bputs
+    "#  include <sys/wait.h>\n"                 bfd bputs
+    "#else\n"                                  bfd bputs
+    "#  define RP_OS_LINUX 1\n"                 bfd bputs
+    "#  define RP_OS_ID 0\n"                    bfd bputs
+    "#  include <stddef.h>\n"                   bfd bputs
+    "#  include <unistd.h>\n"                   bfd bputs
+    "#  include <errno.h>\n"                    bfd bputs
+    "#  include <fcntl.h>\n"                    bfd bputs
+    "#  include <termios.h>\n"                  bfd bputs
+    "#  include <time.h>\n"                     bfd bputs
+    "#  include <sys/ioctl.h>\n"                bfd bputs
+    "#  include <sys/mman.h>\n"                 bfd bputs
+    "#  include <sys/stat.h>\n"                 bfd bputs
+    "#  include <sys/syscall.h>\n"              bfd bputs
+    "#endif\n"                                 bfd bputs
+    "\n"                                       bfd bputs
+    "/* -os <name> picks the std/<name>/os.porth module, so the program bakes\n" bfd bputs
+    "   in one OS's ABI.  Refuse to build it for another.  -DRP_NO_ABI_CHECKS\n" bfd bputs
+    "   skips this and the layout checks, which is only useful to smoke-test\n" bfd bputs
+    "   another branch's code on the wrong host. */\n" bfd bputs
+    "#define RP_EXPECT_OS "                    bfd bputs
+    os @                                      bfd bputu
+    "\n"                                       bfd bputs
+    "#if !defined(RP_NO_ABI_CHECKS) && (RP_EXPECT_OS != RP_OS_ID)\n" bfd bputs
+    "#error \"this program was compiled with -os for a different OS than this build target\"\n" bfd bputs
+    "#endif\n"                                 bfd bputs
+    "\n"                                       bfd bputs
+    "#if !defined(RP_NO_ABI_CHECKS) && RP_OS_LINUX\n" bfd bputs
+    "_Static_assert(sizeof(struct winsize) == 8, \"std/os.porth: sizeof(winsize)\");\n" bfd bputs
+    "_Static_assert(O_CREAT == 0x40 && O_TRUNC == 0x200 && O_NONBLOCK == 0x800, \"std/os.porth: O_*\");\n" bfd bputs
+    "_Static_assert(EAGAIN == 11 && ENAMETOOLONG == 36 && ELOOP == 40, \"std/os.porth: errno\");\n" bfd bputs
+    "_Static_assert(CLOCK_MONOTONIC == 1 && MAP_ANONYMOUS == 0x20, \"std/os.porth: clock/mmap\");\n" bfd bputs
+    "_Static_assert(ICANON == 2 && ECHO == 8 && VMIN == 6 && VTIME == 5, \"std/os.porth: termios bits\");\n" bfd bputs
+    "_Static_assert(TIOCGWINSZ == 0x5413 && TCGETS == 0x5401, \"std/os.porth: ioctl requests\");\n" bfd bputs
+    "/* std/os.porth carries the x86_64 layouts, so only check them there.  An\n" bfd bputs
+    "   aarch64 LP64 glibc has a different struct stat. */\n" bfd bputs
+    "#  if defined(__x86_64__)\n"              bfd bputs
+    "_Static_assert(sizeof(struct stat) == 144, \"std/os.porth: sizeof(stat)\");\n" bfd bputs
+    "_Static_assert(offsetof(struct stat, st_ino) == 8, \"std/os.porth: stat.st_ino\");\n" bfd bputs
+    "_Static_assert(offsetof(struct stat, st_mode) == 24, \"std/os.porth: stat.st_mode\");\n" bfd bputs
+    "_Static_assert(offsetof(struct stat, st_size) == 48, \"std/os.porth: stat.st_size\");\n" bfd bputs
+    "_Static_assert(offsetof(struct stat, st_blocks) == 64, \"std/os.porth: stat.st_blocks\");\n" bfd bputs
+    "_Static_assert(sizeof(struct termios) == 60, \"std/os.porth: sizeof(termios)\");\n" bfd bputs
+    "_Static_assert(offsetof(struct termios, c_cc) == 17, \"std/os.porth: termios.c_cc\");\n" bfd bputs
+    "_Static_assert(NCCS == 32, \"std/os.porth: NCCS\");\n" bfd bputs
+    "#  endif\n"                             bfd bputs
+    "#elif !defined(RP_NO_ABI_CHECKS) && RP_OS_DARWIN\n" bfd bputs
+    "_Static_assert(sizeof(struct stat) == 144, \"std/darwin/os.porth: sizeof(stat)\");\n" bfd bputs
+    "_Static_assert(offsetof(struct stat, st_mode) == 4, \"std/darwin/os.porth: stat.st_mode\");\n" bfd bputs
+    "_Static_assert(offsetof(struct stat, st_ino) == 8, \"std/darwin/os.porth: stat.st_ino\");\n" bfd bputs
+    "_Static_assert(offsetof(struct stat, st_size) == 96, \"std/darwin/os.porth: stat.st_size\");\n" bfd bputs
+    "_Static_assert(offsetof(struct stat, st_blocks) == 104, \"std/darwin/os.porth: stat.st_blocks\");\n" bfd bputs
+    "_Static_assert(sizeof(struct termios) == 72, \"std/darwin/os.porth: sizeof(termios)\");\n" bfd bputs
+    "_Static_assert(offsetof(struct termios, c_oflag) == 8, \"std/darwin/os.porth: termios.c_oflag\");\n" bfd bputs
+    "_Static_assert(offsetof(struct termios, c_cc) == 32, \"std/darwin/os.porth: termios.c_cc\");\n" bfd bputs
+    "_Static_assert(NCCS == 20, \"std/darwin/os.porth: NCCS\");\n" bfd bputs
+    "_Static_assert(sizeof(struct winsize) == 8, \"std/darwin/os.porth: sizeof(winsize)\");\n" bfd bputs
+    "_Static_assert(O_CREAT == 0x200 && O_TRUNC == 0x400 && O_NONBLOCK == 0x4, \"std/darwin/os.porth: O_*\");\n" bfd bputs
+    "_Static_assert(EAGAIN == 35 && ENAMETOOLONG == 63 && ELOOP == 62, \"std/darwin/os.porth: errno\");\n" bfd bputs
+    "_Static_assert(CLOCK_MONOTONIC == 6 && MAP_ANON == 0x1000, \"std/darwin/os.porth: clock/mmap\");\n" bfd bputs
+    "_Static_assert(ICANON == 0x100 && ECHO == 8 && VMIN == 16 && VTIME == 17, \"std/darwin/os.porth: termios bits\");\n" bfd bputs
+    "_Static_assert(offsetof(struct sockaddr_in, sin_family) == 1, \"std/darwin/os.porth: sin_family\");\n" bfd bputs
+    "#elif !defined(RP_NO_ABI_CHECKS) && RP_OS_WIN32\n" bfd bputs
+    "_Static_assert(sizeof(struct _stat64) == 56, \"std/windows/os.porth: sizeof(stat)\");\n" bfd bputs
+    "_Static_assert(offsetof(struct _stat64, st_ino) == 4, \"std/windows/os.porth: stat.st_ino\");\n" bfd bputs
+    "_Static_assert(offsetof(struct _stat64, st_mode) == 6, \"std/windows/os.porth: stat.st_mode\");\n" bfd bputs
+    "_Static_assert(offsetof(struct _stat64, st_size) == 24, \"std/windows/os.porth: stat.st_size\");\n" bfd bputs
+    "_Static_assert(_O_CREAT == 0x100 && _O_TRUNC == 0x200 && _O_BINARY == 0x8000, \"std/windows/os.porth: O_*\");\n" bfd bputs
+    "_Static_assert(ENAMETOOLONG == 38 && ELOOP == 114 && EAGAIN == 11, \"std/windows/os.porth: errno\");\n" bfd bputs
+    "#endif\n"                                 bfd bputs
+    "\n"                                       bfd bputs
+    "typedef uint64_t u64;\n"                  bfd bputs
+    "typedef int64_t i64;\n"                   bfd bputs
+    "\n"                                       bfd bputs
+    "#define RP_ENOSYS (-38)\n"                 bfd bputs
+    "\n"                                       bfd bputs
+    "#define RP_STACK_SLOTS 1048576\n"         bfd bputs
+    "#define RP_RSTACK_SLOTS 8192\n"            bfd bputs
+    "\n"                                       bfd bputs
+    "static u64 rp_stack[RP_STACK_SLOTS];\n"   bfd bputs
+    "static u64 *rp_sp = rp_stack + RP_STACK_SLOTS;\n" bfd bputs
+    "static u64 rp_rstack[RP_RSTACK_SLOTS];\n" bfd bputs
+    "static u64 *rp_rsp = rp_rstack + RP_RSTACK_SLOTS;\n" bfd bputs
+    "static int rp_argc;\n"                    bfd bputs
+    "static char **rp_argv;\n"                 bfd bputs
+    "static char **rp_envp;\n"                 bfd bputs
+    "static u64 rp_callstack[8192];\n"         bfd bputs
+    "static int rp_csp;\n"                     bfd bputs
+    "\n"                                       bfd bputs
+    "static u64 rp_mem[" bfd bputs
+    global-memory-capacity @ 7 + 8 / 1 max bfd bputu
+    "];\n" bfd bputs
+    "\n"                                       bfd bputs
+    "static void rp_push(u64 v) { *--rp_sp = v; }\n" bfd bputs
+    "static u64 rp_pop(void) { return *rp_sp++; }\n" bfd bputs
+    "#define G (long)rp_pop()\n"                bfd bputs
+    "#define BB(o) {u64 b=rp_pop(),a=rp_pop();rp_push((u64)(a o b));}\n" bfd bputs
+    "#define SB(o) {u64 b=rp_pop(),a=rp_pop();rp_push((u64)((i64)a o (i64)b));}\n" bfd bputs
+    "#define SH(o) {u64 b=rp_pop()&63,a=rp_pop();rp_push(a o b);}\n" bfd bputs
+    "#define MX {u64 b=rp_pop(),a=rp_pop();rp_push((u64)((i64)a>=(i64)b?a:b));}\n" bfd bputs
+    "#define LD(t) {unsigned char*p=(unsigned char*)(uintptr_t)rp_pop();rp_push((u64)*(t*)p);}\n" bfd bputs
+    "#define ST(t) {unsigned char*p=(unsigned char*)(uintptr_t)rp_pop();u64 v=rp_pop();*(t*)p=(t)v;}\n" bfd bputs
+    "#define SC(...) rp_push((u64)rp_syscall(__VA_ARGS__))\n" bfd bputs
+    "\n"                                       bfd bputs
+    "/* libc reports failure as -1 with errno set; Porth expects -errno. */\n" bfd bputs
+    "static long rp_fail(long r) { return r < 0 ? -(long)errno : r; }\n" bfd bputs
+    "\n"                                       bfd bputs
+    "#if RP_OS_LINUX\n"                        bfd bputs
+    "static const long rp_syscall_pairs[] = {\n" bfd bputs
+    "  0,63, 1,64, 3,57, 5,80, 8,62, 9,222, 10,226, 11,215, 12,214,\n" bfd bputs
+    "  13,134, 14,135, 15,139, 16,29, 19,65, 20,66, 32,23, 35,101,\n" bfd bputs
+    "  39,172, 41,198, 42,203, 43,202, 46,211, 47,212, 48,210, 49,200,\n" bfd bputs
+    "  50,201, 51,204, 52,205, 53,199, 54,208, 55,209, 59,221, 60,93,\n" bfd bputs
+    "  61,260, 62,129, 63,160, 72,25, 74,82, 75,83, 76,45, 77,46,\n" bfd bputs
+    "  79,17, 80,49, 81,50, 85,85, 89,78, 96,169, 98,165, 99,179,\n" bfd bputs
+    "  102,174, 104,176, 107,175, 108,177, 110,173, 112,157, 115,158,\n" bfd bputs
+    "  116,159, 121,155, 124,156, 129,132, 145,160, 161,51, 175,273,\n" bfd bputs
+    "  186,178, 202,98, 217,61, 228,113, 230,115, 231,94, 232,22,\n" bfd bputs
+    "  233,21, 234,131, 257,56, 262,79, 264,38, 268,53, 271,72,\n" bfd bputs
+    "  273,99, 274,100, 280,88, 288,242, 290,19, 291,20, 293,59,\n" bfd bputs
+    "  294,26, 299,243, 307,269, 318,270, 334,279\n" bfd bputs
+    "};\n"                                     bfd bputs
+    "\n"                                       bfd bputs
+    "static long rp_map_syscall(long n) {\n"   bfd bputs
+    "#if defined(__x86_64__)\n"                bfd bputs
+    "  return n;\n"                            bfd bputs
+    "#else\n"                                  bfd bputs
+    "  unsigned long i;\n"                     bfd bputs
+    "  for (i = 0; i < sizeof(rp_syscall_pairs) / sizeof(rp_syscall_pairs[0]); i += 2)\n" bfd bputs
+    "    if (rp_syscall_pairs[i] == n) return rp_syscall_pairs[i + 1];\n" bfd bputs
+    "  return n;\n"                            bfd bputs
+    "#endif\n"                                 bfd bputs
+    "}\n"                                      bfd bputs
+    "\n"                                       bfd bputs
+    "static long rp_syscall(long n, long a, long b, long c, long d, long e, long f) {\n" bfd bputs
+    "  return syscall(rp_map_syscall(n), a, b, c, d, e, f);\n" bfd bputs
+    "}\n"                                      bfd bputs
+    "#elif RP_OS_DARWIN\n"                     bfd bputs
+    "static long rp_syscall(long n, long a, long b, long c, long d, long e, long f) {\n" bfd bputs
+    "  switch (n) {\n"                          bfd bputs
+    "  case 0: return rp_fail((long)read((int)a, (void *)b, (size_t)c));\n" bfd bputs
+    "  case 1: return rp_fail((long)write((int)a, (const void *)b, (size_t)c));\n" bfd bputs
+    "  case 2: return rp_fail((long)open((const char *)a, (int)b, (mode_t)c));\n" bfd bputs
+    "  case 3: return rp_fail((long)close((int)a));\n" bfd bputs
+    "  case 4: return rp_fail((long)stat((const char *)a, (struct stat *)b));\n" bfd bputs
+    "  case 5: return rp_fail((long)fstat((int)a, (struct stat *)b));\n" bfd bputs
+    "  case 8: return rp_fail((long)lseek((int)a, (off_t)b, (int)c));\n" bfd bputs
+    "  /* std/darwin/os.porth supplies MAP_ANON itself, which is 0x1000 here. */\n" bfd bputs
+    "  case 9: return rp_fail((long)mmap((void *)a, (size_t)b, (int)c, (int)d, (int)e, (off_t)f));\n" bfd bputs
+    "  /* The terminal/console requests are handles std/os.porth keeps identical\n" bfd bputs
+    "     on every OS: Darwin has no TCGETS/TCSETS/TIOCGWINSZ ioctl numbers. */\n" bfd bputs
+    "  case 16: switch ((int)b) {\n"            bfd bputs
+    "    case 0x5401: return rp_fail((long)tcgetattr((int)a, (struct termios *)c));\n" bfd bputs
+    "    case 0x5402: return rp_fail((long)tcsetattr((int)a, TCSANOW, (const struct termios *)c));\n" bfd bputs
+    "    case 0x5404: return rp_fail((long)tcsetattr((int)a, TCSAFLUSH, (const struct termios *)c));\n" bfd bputs
+    "    case 0x5413: return rp_fail((long)ioctl((int)a, TIOCGWINSZ, (void *)c));\n" bfd bputs
+    "    default: return rp_fail((long)ioctl((int)a, (unsigned long)b, (void *)c));\n" bfd bputs
+    "  }\n"                                    bfd bputs
+    "  case 20: return rp_fail((long)pipe((int *)a));\n" bfd bputs
+    "  case 21: return rp_fail((long)access((const char *)a, (int)b));\n" bfd bputs
+    "  case 33: return rp_fail((long)dup((int)a));\n" bfd bputs
+    "  case 35: return rp_fail((long)nanosleep((const struct timespec *)a, (struct timespec *)b));\n" bfd bputs
+    "  case 39: return (long)getpid();\n"       bfd bputs
+    "  case 41: return rp_fail((long)socket((int)a, (int)b, (int)c));\n" bfd bputs
+    "  case 43: return rp_fail((long)accept((int)a, (struct sockaddr *)b, (socklen_t *)c));\n" bfd bputs
+    "  case 49: return rp_fail((long)bind((int)a, (const struct sockaddr *)b, (socklen_t)c));\n" bfd bputs
+    "  case 50: return rp_fail((long)listen((int)a, (int)b));\n" bfd bputs
+    "  case 57: return rp_fail((long)fork());\n" bfd bputs
+    "  case 59: return rp_fail((long)execve((const char *)a, (char *const *)b, (char *const *)c));\n" bfd bputs
+    "  case 60: case 231: _exit((int)a); return 0;\n" bfd bputs
+    "  case 61: return rp_fail((long)wait4((pid_t)a, (int *)b, (int)c, (struct rusage *)d));\n" bfd bputs
+    "  case 62: return rp_fail((long)kill((pid_t)a, (int)b));\n" bfd bputs
+    "  case 72: return rp_fail((long)fcntl((int)a, (int)b, (long)c));\n" bfd bputs
+    "  case 79: return rp_fail((long)getcwd((char *)a, (size_t)b));\n" bfd bputs
+    "  case 80: return rp_fail((long)chdir((const char *)a));\n" bfd bputs
+    "  case 82: return rp_fail((long)rename((const char *)a, (const char *)b));\n" bfd bputs
+    "  case 83: return rp_fail((long)mkdir((const char *)a, (mode_t)b));\n" bfd bputs
+    "  case 87: return rp_fail((long)unlink((const char *)a));\n" bfd bputs
+    "  case 90: return rp_fail((long)dup2((int)a, (int)b));\n" bfd bputs
+    "  case 95: return rp_fail((long)umask((mode_t)a));\n" bfd bputs
+    "  case 96: return rp_fail((long)gettimeofday((struct timeval *)a, (void *)b));\n" bfd bputs
+    "  case 161: return rp_fail((long)chroot((const char *)a));\n" bfd bputs
+    "  case 228: return rp_fail((long)clock_gettime((clockid_t)a, (struct timespec *)b));\n" bfd bputs
+    "  case 230: { /* Darwin has no clock_nanosleep; TIMER_ABSTIME needs a delta */\n" bfd bputs
+    "             struct timespec ts = *(const struct timespec *)c;\n" bfd bputs
+    "             if (b & 1) { struct timespec now; long ns;\n" bfd bputs
+    "               clock_gettime((clockid_t)a, &now);\n" bfd bputs
+    "               ns = (long)(ts.tv_sec - now.tv_sec) * 1000000000L\n" bfd bputs
+    "                    + (long)(ts.tv_nsec - now.tv_nsec);\n" bfd bputs
+    "               if (ns < 0) ns = 0;\n"     bfd bputs
+    "               ts.tv_sec = ns / 1000000000L; ts.tv_nsec = ns % 1000000000L; }\n" bfd bputs
+    "             return rp_fail((long)nanosleep(&ts, (struct timespec *)d)); }\n" bfd bputs
+    "  /* AT_FDCWD is a handle like the syscall numbers: -100 here, -2 on Darwin. */\n" bfd bputs
+    "  case 257: return rp_fail((long)openat((int)a == -100 ? AT_FDCWD : (int)a,\n" bfd bputs
+    "                                     (const char *)b, (int)c, (mode_t)d));\n" bfd bputs
+    "  default: return RP_ENOSYS;\n"            bfd bputs
+    "  }\n"                                    bfd bputs
+    "}\n"                                      bfd bputs
+    "#elif RP_OS_WIN32\n"                       bfd bputs
+    "/* The CRT has no syscalls.  Map what has a CRT equivalent and report\n" bfd bputs
+    "   ENOSYS for the rest: sockets, mmap and the terminal needs a real\n" bfd bputs
+    "   Win32 layer rather than a syscall shim.  The file calls take the\n" bfd bputs
+    "   std/windows/os.porth flags, which already carry _O_BINARY. */\n" bfd bputs
+    "static long rp_syscall(long n, long a, long b, long c, long d, long e, long f) {\n" bfd bputs
+    "  (void)d; (void)e; (void)f;\n"             bfd bputs
+    "  switch (n) {\n"                          bfd bputs
+    "  case 0: return rp_fail((long)_read((int)a, (void *)b, (unsigned)c));\n" bfd bputs
+    "  case 1: return rp_fail((long)_write((int)a, (const void *)b, (unsigned)c));\n" bfd bputs
+    "  case 2: return rp_fail((long)_open((const char *)a, (int)b, (int)c));\n" bfd bputs
+    "  case 3: return rp_fail((long)_close((int)a));\n" bfd bputs
+    "  case 4: return rp_fail((long)_stat64((const char *)a, (struct _stat64 *)b));\n" bfd bputs
+    "  case 5: return rp_fail((long)_fstat64((int)a, (struct _stat64 *)b));\n" bfd bputs
+    "  case 8: return rp_fail(_lseeki64((int)a, b, (int)c));\n" bfd bputs
+    "  case 21: return rp_fail((long)_access((const char *)a, (int)b));\n" bfd bputs
+    "  case 39: return (long)GetCurrentProcessId();\n" bfd bputs
+    "  case 60: case 231: ExitProcess((UINT)a); return 0;\n" bfd bputs
+    "  case 79: { if (_getcwd((char *)a, (int)b)) return (long)strlen((char *)a);\n" bfd bputs
+    "             return -(long)errno; }\n" bfd bputs
+    "  case 80: return rp_fail((long)_chdir((const char *)a));\n" bfd bputs
+    "  case 82: return rp_fail((long)rename((const char *)a, (const char *)b));\n" bfd bputs
+    "  case 83: return rp_fail((long)_mkdir((const char *)a));\n" bfd bputs
+    "  case 87: return rp_fail((long)_unlink((const char *)a));\n" bfd bputs
+    "  case 90: return rp_fail((long)_dup2((int)a, (int)b));\n" bfd bputs
+    "  default: return RP_ENOSYS;\n"            bfd bputs
+    "  }\n"                                    bfd bputs
+    "}\n"                                      bfd bputs
+    "#endif\n"                                 bfd bputs
+    "\n"                                       bfd bputs
+    "static void rp_print(u64 v) {\n"          bfd bputs
+    "  char buf[24];\n"                        bfd bputs
+    "  int i = 22;\n"                          bfd bputs
+    "  buf[23] = 10;\n"                        bfd bputs
+    "  do { buf[i--] = (char)('0' + (v % 10)); v /= 10; } while (v);\n" bfd bputs
+    "#if RP_OS_WIN32\n"                        bfd bputs
+    "  (void)_write(1, buf + i + 1, (unsigned)(23 - i));\n" bfd bputs
+    "#else\n"                                  bfd bputs
+    "  (void)write(1, buf + i + 1, (size_t)(23 - i));\n" bfd bputs
+    "#endif\n"                                 bfd bputs
+    "}\n"                                      bfd bputs
+    "\n"                                       bfd bputs
+  end
+end
+
+proc generate-c-op
+  int // ip
+  ptr // bfd
+in
+  let ip bfd in
+    ip sizeof(Op) * ops +ptr
+    let op in
+      op Op.type ptr+ @int
+      op Op.operand ptr+ @int
+      let type operand in
+        assert "Exhaustive handling of Op types in generate-c" COUNT_OPS 28 = end
+        type OP_PUSH_INT = if
+          "  rp_push(" bfd bputs operand bfd bputu "ULL);\n" bfd bputs
+        else type OP_PUSH_BOOL = if*
+          "  rp_push(" bfd bputs operand bfd bputu "ULL);\n" bfd bputs
+        else type OP_PUSH_PTR = if*
+          "  rp_push(" bfd bputs operand bfd bputu "ULL);\n" bfd bputs
+        else type OP_PUSH_ADDR_OF = if*
+          "  rp_push(" bfd bputs
+          operand sizeof(Proc) * procs +ptr Proc.addr ptr+ @int bfd bputu
+          "ULL);\n" bfd bputs
+        else type OP_PUSH_LOCAL_MEM = if*
+          "  rp_push((u64)(uintptr_t)((unsigned char *)rp_rsp + " bfd bputs
+          operand bfd bputu
+          "));\n" bfd bputs
+        else type OP_PUSH_GLOBAL_MEM = if*
+          "  rp_push((u64)(uintptr_t)((unsigned char *)rp_mem + " bfd bputs
+          operand bfd bputu
+          "));\n" bfd bputs
+        else type OP_PUSH_GLOBAL_VAR = if*
+          "  rp_push((u64)(uintptr_t)((unsigned char *)rp_mem + " bfd bputs
+          operand sizeof(Var) * global-vars +ptr Var.offset ptr+ @int bfd bputu
+          "));\n" bfd bputs
+        else type OP_PUSH_LOCAL_VAR = if*
+          "  rp_push((u64)(uintptr_t)((unsigned char *)rp_rsp + " bfd bputs
+          operand 32 shr 0xFFFF_FFFF and bfd bputu
+          "));\n" bfd bputs
+        else type OP_PUSH_STR = if*
+          "  rp_push(" bfd bputs
+          operand sizeof(Strlit) * strlits +ptr Strlit.str ptr+ Str.count ptr+ @int bfd bputu
+          "ULL);\n" bfd bputs
+          "  rp_push((u64)(uintptr_t)rp_str" bfd bputs
+          operand bfd bputu
+          ");\n" bfd bputs
+        else type OP_PUSH_CSTR = if*
+          "  rp_push((u64)(uintptr_t)rp_str" bfd bputs
+          operand bfd bputu
+          ");\n" bfd bputs
+        else type OP_IF = if*
+          "  if (!rp_pop()) { pc = " bfd bputs ip operand + bfd bputu "ULL; continue; }\n" bfd bputs
+        else type OP_IFSTAR = if*
+          "  if (!rp_pop()) { pc = " bfd bputs ip operand + bfd bputu "ULL; continue; }\n" bfd bputs
+        else type OP_ELSE = if*
+          "  pc = " bfd bputs ip operand + bfd bputu "ULL; continue;\n" bfd bputs
+        else type OP_END_IF = if*
+          // nothing
+        else type OP_END_WHILE = if*
+          "  pc = " bfd bputs ip operand - bfd bputu "ULL; continue;\n" bfd bputs
+        else type OP_PREP_PROC = if*
+          "  rp_rsp -= " bfd bputs operand 8 / 1 + bfd bputu ";\n" bfd bputs
+        else type OP_RET = if*
+          "  rp_rsp += " bfd bputs operand 8 / 1 + bfd bputu "; pc = rp_callstack[--rp_csp]; continue;\n" bfd bputs
+        else type OP_CALL = if*
+          "  rp_callstack[rp_csp++] = " bfd bputs ip 1 + bfd bputu
+          "ULL; pc = " bfd bputs
+          operand sizeof(Proc) * procs +ptr Proc.addr ptr+ @int bfd bputu
+          "ULL; continue;\n" bfd bputs
+        else type OP_INLINED = if*
+          // ignored
+        else type OP_WHILE = if*
+          // label only
+        else type OP_DO = if*
+          "  if (!rp_pop()) { pc = " bfd bputs ip operand + bfd bputu "ULL; continue; }\n" bfd bputs
+        else type OP_INTRINSIC = if*
+          assert "Exhaustive handling of Intrinsics in generate-c" COUNT_INTRINSICS 48 = end
+          operand INTRINSIC_PLUS = if
+            "  BB(+);\n" bfd bputs
+          else operand INTRINSIC_MINUS = if*
+            "  BB(-);\n" bfd bputs
+          else operand INTRINSIC_MUL = if*
+            "  BB(*);\n" bfd bputs
+          else operand INTRINSIC_DIVMOD = if*
+            "  { u64 b = rp_pop(), a = rp_pop(); rp_push(a / b); rp_push(a % b); }\n" bfd bputs
+          else operand INTRINSIC_IDIVMOD = if*
+            "  { i64 b = (i64)rp_pop(), a = (i64)rp_pop(); rp_push((u64)(a / b)); rp_push((u64)(a % b)); }\n" bfd bputs
+          else operand INTRINSIC_MAX = if*
+            "  MX;\n" bfd bputs
+          else operand INTRINSIC_EQ = if*
+            "  SB(==);\n" bfd bputs
+          else operand INTRINSIC_GT = if*
+            "  SB(>);\n" bfd bputs
+          else operand INTRINSIC_LT = if*
+            "  SB(<);\n" bfd bputs
+          else operand INTRINSIC_GE = if*
+            "  SB(>=);\n" bfd bputs
+          else operand INTRINSIC_LE = if*
+            "  SB(<=);\n" bfd bputs
+          else operand INTRINSIC_NE = if*
+            "  SB(!=);\n" bfd bputs
+          else operand INTRINSIC_SHR = if*
+            "  SH(>>);\n" bfd bputs
+          else operand INTRINSIC_SHL = if*
+            "  SH(<<);\n" bfd bputs
+          else operand INTRINSIC_OR = if*
+            "  BB(|);\n" bfd bputs
+          else operand INTRINSIC_AND = if*
+            "  BB(&);\n" bfd bputs
+          else operand INTRINSIC_NOT = if*
+            "  rp_sp[0] = ~rp_sp[0];\n" bfd bputs
+          else operand INTRINSIC_PRINT = if*
+            "  rp_print(rp_pop());\n" bfd bputs
+          else operand INTRINSIC_DUP = if*
+            "  rp_push(rp_sp[0]);\n" bfd bputs
+          else operand INTRINSIC_SWAP = if*
+            "  { u64 a = rp_sp[0], b = rp_sp[1]; rp_sp[0] = b; rp_sp[1] = a; }\n" bfd bputs
+          else operand INTRINSIC_DROP = if*
+            "  (void)rp_pop();\n" bfd bputs
+          else operand INTRINSIC_OVER = if*
+            "  rp_push(rp_sp[1]);\n" bfd bputs
+          else operand INTRINSIC_ROT = if*
+            "  { u64 a = rp_sp[2], b = rp_sp[1], c = rp_sp[0]; rp_sp[2] = b; rp_sp[1] = c; rp_sp[0] = a; }\n" bfd bputs
+          else operand INTRINSIC_LOAD8 = if*
+            "  LD(uint8_t);\n" bfd bputs
+          else operand INTRINSIC_STORE8 = if*
+            "  ST(uint8_t);\n" bfd bputs
+          else operand INTRINSIC_LOAD16 = if*
+            "  LD(uint16_t);\n" bfd bputs
+          else operand INTRINSIC_STORE16 = if*
+            "  ST(uint16_t);\n" bfd bputs
+          else operand INTRINSIC_LOAD32 = if*
+            "  LD(uint32_t);\n" bfd bputs
+          else operand INTRINSIC_STORE32 = if*
+            "  ST(uint32_t);\n" bfd bputs
+          else operand INTRINSIC_LOAD64 = if*
+            "  LD(uint64_t);\n" bfd bputs
+          else operand INTRINSIC_STORE64 = if*
+            "  ST(uint64_t);\n" bfd bputs
+          else operand INTRINSIC_LOAD_PTR_TO = if*
+            "  LD(uint64_t);\n" bfd bputs
+          else operand INTRINSIC_STORE_PTR_TO = if*
+            "  ST(uint64_t);\n" bfd bputs
+          else operand INTRINSIC_CAST_PTR = if*
+          else operand INTRINSIC_CAST_INT = if*
+          else operand INTRINSIC_CAST_BOOL = if*
+          else operand INTRINSIC_CAST_ADDR = if*
+          else operand INTRINSIC_ARGC = if*
+            "  rp_push((u64)rp_argc);\n" bfd bputs
+          else operand INTRINSIC_ARGV = if*
+            "  rp_push((u64)(uintptr_t)rp_argv);\n" bfd bputs
+          else operand INTRINSIC_ENVP = if*
+            "  rp_push((u64)(uintptr_t)rp_envp);\n" bfd bputs
+          else operand INTRINSIC_SYSCALL0 = if*
+            "  {long n=G;SC(n,0,0,0,0,0,0);}\n" bfd bputs
+          else operand INTRINSIC_SYSCALL1 = if*
+            "  {long n=G,a0=G;SC(n,a0,0,0,0,0,0);}\n" bfd bputs
+          else operand INTRINSIC_SYSCALL2 = if*
+            "  {long n=G,a0=G,a1=G;SC(n,a0,a1,0,0,0,0);}\n" bfd bputs
+          else operand INTRINSIC_SYSCALL3 = if*
+            "  {long n=G,a0=G,a1=G,a2=G;SC(n,a0,a1,a2,0,0,0);}\n" bfd bputs
+          else operand INTRINSIC_SYSCALL4 = if*
+            "  {long n=G,a0=G,a1=G,a2=G,a3=G;SC(n,a0,a1,a2,a3,0,0);}\n" bfd bputs
+          else operand INTRINSIC_SYSCALL5 = if*
+            "  {long n=G,a0=G,a1=G,a2=G,a3=G,a4=G;SC(n,a0,a1,a2,a3,a4,0);}\n" bfd bputs
+          else operand INTRINSIC_SYSCALL6 = if*
+            "  {long n=G,a0=G,a1=G,a2=G,a3=G,a4=G,a5=G;SC(n,a0,a1,a2,a3,a4,a5);}\n" bfd bputs
+          else operand INTRINSIC_??? = if*
+          else
+            here eputs ": unreachable. Invalid intrinsic.\n" eputs
+            1 exit
+          end
+        else type OP_CALL_LIKE = if*
+          "  { u64 target = rp_pop(); rp_callstack[rp_csp++] = " bfd bputs ip 1 + bfd bputu
+          "ULL; pc = target; continue; }\n" bfd bputs
+        else type OP_BIND_LET = if*
+          "  { int i; rp_rsp -= " bfd bputs operand bfd bputu ";\n" bfd bputs
+          "  for (i = " bfd bputs operand bfd bputu "; i > 0; --i) rp_rsp[i - 1] = rp_pop(); }\n" bfd bputs
+        else type OP_BIND_PEEK = if*
+          "  { int i; rp_rsp -= " bfd bputs operand bfd bputu ";\n" bfd bputs
+          "  for (i = 0; i < " bfd bputs operand bfd bputu "; ++i) rp_rsp[" bfd bputs operand bfd bputu " - 1 - i] = rp_sp[i]; }\n" bfd bputs
+        else type OP_PUSH_BIND = if*
+          "  rp_push(rp_rsp[" bfd bputs operand bfd bputu "]);\n" bfd bputs
+        else type OP_UNBIND = if*
+          "  rp_rsp += " bfd bputs operand bfd bputu ";\n" bfd bputs
+        else type OP_CAST = if*
+          // ignored
+        else
+          here eputs ": unreachable. Invalid op.\n" eputs
+          1 exit
+        end
+      end
+    end
+  end
+end
+
+proc generate-c-code
+  ptr // bfd
+in
+  let bfd in
+    "static void rp_run(u64 pc) {\n" bfd bputs
+    "  rp_callstack[rp_csp++] = 0xFFFFFFFFFFFFFFFFULL;\n" bfd bputs
+    "  for (;;) {\n" bfd bputs
+    "    switch (pc) {\n" bfd bputs
+
+    0 while dup ops-count @ < do
+      "    case " bfd bputs
+      dup bfd bputu
+      ":\n" bfd bputs
+      dup bfd generate-c-op
+      1 +
+    end drop
+
+    "    default: return;\n" bfd bputs
+    "    }\n" bfd bputs
+    "  }\n" bfd bputs
+    "}\n\n" bfd bputs
+  end
+end
+
+proc generate-c-main
+  ptr // bfd
+in
+  let bfd in
+    "int main(int argc, char **argv, char **envp) {\n" bfd bputs
+    "#if RP_OS_WIN32\n"                        bfd bputs
+    "  /* Porth writes raw newlines; keep the CRT from rewriting them. */\n" bfd bputs
+    "  _setmode(_fileno(stdin), _O_BINARY);\n"  bfd bputs
+    "  _setmode(_fileno(stdout), _O_BINARY);\n" bfd bputs
+    "  _setmode(_fileno(stderr), _O_BINARY);\n" bfd bputs
+    "#endif\n"                                 bfd bputs
+    "  rp_argc = argc;\n" bfd bputs
+    "  rp_argv = argv;\n" bfd bputs
+    "  rp_envp = envp;\n" bfd bputs
+
+    "main" proc-lookup-by-name
+    let main-proc in
+      main-proc NULL ptr= if
+        here eputs ": Assertion Failed: type checking phase did not check the existence of `main` procedure" eputs
+        1 exit
+      end
+
+      "  rp_run(" bfd bputs
+      main-proc Proc.addr ptr+ @int bfd bputu
+      "ULL);\n" bfd bputs
+    end
+
+    "  return 0;\n" bfd bputs
+    "}\n" bfd bputs
+  end
+end
+
+proc generate-c
+  ptr // file-path
+in
+  memory bfd sizeof(Bfd) end
+  sizeof(Bfd) 0 bfd memset drop
+
+  let file-path in
+    silent @ lnot if
+      "[INFO] Generating "  puts
+      file-path cstr-to-str puts
+      "\n"                  puts
+    end
+
+    0o644                          // mode
+    O_CREAT O_WRONLY or O_TRUNC or // flags
+    file-path                      // pathname
+    AT_FDCWD
+    openat
+
+    dup 0 < if
+      "[ERROR] could not open `" eputs
+      file-path cstr-to-str      eputs
+      "`\n"                      eputs
+      1 exit
+    end
+
+    BFD_CAP tmp-alloc
+    let fd buff in
+      fd   bfd Bfd.fd  ptr+ !int
+      buff bfd Bfd.buff ptr+ !ptr
+
+      bfd generate-c-preamble
+      bfd generate-c-strs
+      bfd generate-c-code
+      bfd generate-c-main
+
+      bfd bflush
+      fd close drop
+      buff tmp-rewind
+    end
+  end
+end
+
+/// END Code Generator //////////////////////////////

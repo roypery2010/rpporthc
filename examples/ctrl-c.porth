@@ -1,0 +1,28 @@
+include "std.porth"
+
+proc ctrl+c in
+  "Ctrl+C\n" puts
+  rt_sigreturn drop
+end
+
+const BUF_CAP 256 end
+
+proc main in
+  sizeof(sigaction) tmp-alloc
+  BUF_CAP tmp-alloc
+  let sa buf in
+    sizeof(sigaction) 0 sa memset drop
+
+    addr-of ctrl+c  sa sigaction.handler  ptr+ !addr
+    SA_RESTORER      sa sigaction.flags    ptr+ !int
+
+    8 NULL sa SIGINT rt_sigaction 0 < if
+      "ERROR: could not setup sigaction for whatever reason\n" eputs
+      1 exit
+    end
+
+    BUF_CAP buf stdin read drop
+
+    "OK!\n" puts
+  end
+end

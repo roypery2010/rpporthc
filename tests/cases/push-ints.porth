@@ -1,0 +1,40 @@
+// This test checks if the type checking control flow analysis has a better then exponential asymptotic.
+// Contributed by &nissa.
+include "std.porth"
+
+proc push_ints
+  --
+  int int int int int int int int int int
+in
+  0 1 2 3 4 5 6 7 8 9
+end
+
+proc main in
+  push_ints
+
+  dup print 9 != if end
+  dup print 8 != if end
+  dup print 7 != if end
+  dup print 6 != if end
+  dup print 5 != if end
+  dup print 4 != if end
+  dup print 3 != if end
+  dup print 2 != if end
+  dup print 1 != if end
+  dup print 0 != if end
+
+  push_ints
+
+  "------------------------------\n" puts
+
+  dup print 9 != if end
+  dup print 8 != if end
+  dup print 7 != if end
+  dup print 6 != if end
+  dup print 5 != if end
+  dup print 4 != if end
+  dup print 3 != if end
+  dup print 2 != if end
+  dup print 1 != if end
+  dup print 0 != if end
+end

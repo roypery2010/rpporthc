@@ -1,0 +1,8 @@
+format ELF64 executable 3
+segment readable executable
+entry rp_start
+
+rp_start:
+; Minimal macOS x86_64 entry point
+mov rax, 0      ; exit code
+ret

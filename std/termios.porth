@@ -1,0 +1,20 @@
+// POSIX terminal attributes implemented on top of the ioctl interface.  The
+// struct layout, the request handles and the flag bits come from os.porth, so
+// this works on every OS the compiler targets: the emitted C runtime turns
+// TCGETS/TCSETS/TCSETSF into tcgetattr(3)/tcsetattr(3) where the raw ioctls do
+// not exist (Darwin) and reports ENOSYS where there is no terminal API at all
+// (Windows).
+
+include "linux.porth"
+
+// Same argument order as the other syscall wrappers here: the fd comes last.
+proc tcgetattr ptr int -- int in
+  TCGETS swap ioctl
+end
+
+proc tcsetattr ptr int int -- int in
+  swap TCSAFLUSH =
+  if TCSETSF else TCSETS end
+  swap
+  ioctl
+end

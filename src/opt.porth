@@ -1,0 +1,261 @@
+proc walk-proc
+  ptr
+in
+  let prok in
+    prok Proc.addr ptr+ @int 1 +
+    prok Proc.size ptr+ @int
+    let start size in
+      0
+      while dup size < do
+        dup start + sizeof(Op) * ops +ptr
+        let op in
+          op Op.type    ptr+ @int
+          op Op.operand ptr+ @int
+          op Op.token   ptr+
+          let type operand token in
+            type OP_CALL = type OP_PUSH_ADDR_OF = lor if
+              operand sizeof(Proc) * procs +ptr
+              let next-prok in
+                next-prok Proc.used ptr+
+                let used in
+                  used @bool lnot if
+                    true used !bool
+                    next-prok walk-proc
+                  end
+                end
+              end
+            else type OP_PUSH_STR = type OP_PUSH_CSTR = lor if*
+              true
+                operand
+                sizeof(Strlit) *
+                strlits +ptr
+                Strlit.used ptr+
+              !bool
+            end
+          end
+        end
+        1 +
+      end drop
+    end
+  end
+end
+
+// NOTE: MUST be performed after the type checking.
+// Because it removes a lot of important for type checking stuff.
+proc dce in
+  "main" proc-lookup-by-name
+  let prok in
+    prok ?null if
+      here eputs ": Assertion Failed: expected the `main` procedure\n" eputs
+      1 exit
+    end
+
+    true prok Proc.used ptr+ !bool
+    prok walk-proc
+  end
+
+  memory ops-top sizeof(ptr) end
+  ops ops-top !ptr
+
+  0
+  while dup procs-count @ < do
+    dup sizeof(Proc) * procs +ptr
+    let i prok in
+      prok Proc.used ptr+ @bool if
+        // TODO: this might bite us in the ass when we implement the early return
+        prok Proc.addr ptr+ @int
+        prok Proc.size ptr+ @int 2 +
+        let start size in
+          // NOTE: update the procedure addr
+          ops-top @ptr ops ptr-diff sizeof(Op) /
+          prok Proc.addr ptr+ !int
+
+          0
+          while dup size < do
+            dup start + sizeof(Op) * ops +ptr
+            let op in
+              op Op.type ptr+ @int
+              let type in
+                sizeof(Op) op ops-top @ptr memcpy drop
+                ops-top sizeof(Op) inc64-by
+              end
+            end
+            1 +
+          end
+          drop
+        end
+      end
+      i 1 +
+    end
+  end drop
+
+  ops-top @ptr ops ptr-diff sizeof(Op) /
+  ops-count !
+end
+
+/// BEGIN Optimization //////////////////////////////
+/// Irreversible IR optimizations that preserve op indices.
+///
+/// Every code generator ignores OP_INLINED, so a folded sequence keeps its
+/// first op and marks the rest as OP_INLINED.  Nothing is removed, which
+/// keeps labels, relative jumps and procedure ranges valid.
+
+proc op-inline
+  int // ip
+in
+  let ip in
+    ip sizeof(Op) * ops +ptr
+    let op in
+      OP_INLINED op Op.type    ptr+ !int
+      0         op Op.operand ptr+ !int
+    end
+  end
+end
+
+proc opt-fold-binop
+  int // a
+  int // b
+  int // intrinsic
+  --
+  int  // result
+  bool // folded
+in
+  let a b op in
+         op INTRINSIC_PLUS  = if a b +           true
+    else op INTRINSIC_MINUS = if* a b -           true
+    else op INTRINSIC_MUL   = if* a b *           true
+    else op INTRINSIC_MAX   = if* a b max         true
+    else op INTRINSIC_AND   = if* a b and         true
+    else op INTRINSIC_OR    = if* a b or          true
+    else op INTRINSIC_SHR   = if* a b 63 and shr  true
+    else op INTRINSIC_SHL   = if* a b 63 and shl  true
+    else op INTRINSIC_EQ    = if* a b =  cast(int) true
+    else op INTRINSIC_NE    = if* a b != cast(int) true
+    else op INTRINSIC_LT    = if* a b <  cast(int) true
+    else op INTRINSIC_GT    = if* a b >  cast(int) true
+    else op INTRINSIC_LE    = if* a b <= cast(int) true
+    else op INTRINSIC_GE    = if* a b >= cast(int) true
+    else
+      0 false
+    end
+  end
+end
+
+proc opt-try
+  int // ip
+  --
+  bool
+in
+  let ip in
+    ip sizeof(Op) * ops +ptr
+    let a in
+      a Op.type ptr+ @int OP_PUSH_INT != if false return end
+      a Op.label ptr+ @bool if false return end
+
+      ip 1 + sizeof(Op) * ops +ptr
+      let b in
+        b Op.type ptr+ @int OP_PUSH_INT != if false return end
+        b Op.label ptr+ @bool if false return end
+
+        ip 2 + sizeof(Op) * ops +ptr
+        let c in
+          c Op.label ptr+ @bool if false return end
+          c Op.type ptr+ @int OP_INTRINSIC != if false return end
+
+          c Op.operand ptr+ @int
+          let intr in
+            intr INTRINSIC_DROP = if
+              // PUSH a; PUSH b; DROP -> PUSH a
+              ip 1 + op-inline
+              ip 2 + op-inline
+              true
+              return
+            end
+
+            intr INTRINSIC_SWAP = if
+              // PUSH a; PUSH b; SWAP -> PUSH b; PUSH a
+              a Op.operand ptr+ @int
+              b Op.operand ptr+ @int
+              let av bv in
+                bv a Op.operand ptr+ !int
+                av b Op.operand ptr+ !int
+              end
+              ip 2 + op-inline
+              true
+              return
+            end
+
+            // PUSH a; PUSH b; <foldable> -> PUSH (a <op> b)
+            a Op.operand ptr+ @int
+            b Op.operand ptr+ @int
+            intr opt-fold-binop
+            let result folded in
+              folded if
+                result a Op.operand ptr+ !int
+                ip 1 + op-inline
+                ip 2 + op-inline
+                true
+                return
+              end
+            end
+
+            false
+          end
+        end
+      end
+    end
+  end
+end
+
+proc opt-try-intrinsic
+  int // ip
+  --
+  bool
+in
+  let ip in
+    ip sizeof(Op) * ops +ptr
+    let a in
+      a Op.type ptr+ @int OP_INTRINSIC != if false return end
+      a Op.label ptr+ @bool if false return end
+
+      ip 1 + sizeof(Op) * ops +ptr
+      let b in
+        b Op.type ptr+ @int OP_INTRINSIC != if false return end
+        b Op.label ptr+ @bool if false return end
+
+        a Op.operand ptr+ @int
+        b Op.operand ptr+ @int
+        let ai bi in
+          ai INTRINSIC_DUP = bi INTRINSIC_DROP = land if
+            // DUP; DROP -> nothing
+            ip op-inline
+            ip 1 + op-inline
+            true
+            return
+          end
+          ai INTRINSIC_SWAP = bi INTRINSIC_SWAP = land if
+            // SWAP; SWAP -> nothing
+            ip op-inline
+            ip 1 + op-inline
+            true
+            return
+          end
+        end
+        false
+      end
+    end
+  end
+end
+
+proc optimize in
+  0
+  while dup ops-count @ < do
+    let ip in
+      ip opt-try lnot if
+        ip opt-try-intrinsic drop
+      end
+      ip 1 +
+    end
+  end drop
+end
+/// END Optimization //////////////////////////////

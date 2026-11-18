@@ -1,0 +1,22 @@
+include "std.porth"
+
+
+proc main in
+  var a int end
+  var b bool end
+  var c ptr end
+  var d addr end
+  var pa int ptr-to end
+
+  69           a  !
+  true         b  !
+  NULL         c  !
+  addr-of main d  !
+  a            pa !
+
+  a @ 69 =                               print
+  b @                                    print
+  c @ ?null                              print
+  addr-of main cast(int) d @ cast(int) = print
+  a cast(ptr) pa @ cast(ptr) ptr=        print
+end

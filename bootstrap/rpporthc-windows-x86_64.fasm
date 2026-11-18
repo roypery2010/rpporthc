@@ -1,0 +1,4 @@
+format PE64
+start:
+	nop
+	ret

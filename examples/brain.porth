@@ -1,0 +1,263 @@
+// Simple brainfuck compiler that uses the same backend as porth
+include "std.porth"
+
+// TODO: changing the corresponding definitions in the compiler yields error messages within com.porth rather then here.
+// Maybe we should report the place where the variable is defined in such situation
+
+// Suppress any logging in the compiler
+var silent bool end
+// Annotate IR instructions in the output assembly
+var annotate bool end
+
+include "src/lex.porth"
+include "src/types.porth"
+include "src/com.porth"
+include "src/gen.porth"
+
+proc usage ptr int in
+  let program fd in
+    "Usage: [OPTIONS] "                                                                fd fputs
+    program cstr-to-str                                                                fd fputs
+    " <main.bf>\n"                                                                     fd fputs
+    "  OPTIONS:\n"                                                                     fd fputs
+    "    -s             Silent mode. Don't print any info about compilation phases.\n" fd fputs
+    "    -r             Run the program after successful compilation\n"                fd fputs
+    "    -m <capacity>  The size of the memory buffer in bytes to allocate for the\n"  fd fputs
+    "                   bf program runtime. (Default: 1024)\n"                         fd fputs
+  end
+end
+
+proc main in
+  memory run sizeof(bool) end
+  false run !bool
+
+  memory bf-mem-cap sizeof(int) end
+  1024 bf-mem-cap !int
+
+  memory args sizeof(ptr) end
+  argv args !ptr
+
+  memory program sizeof(ptr) end
+  args @@ptr program !ptr
+
+  memory input-file-path-cstr sizeof(ptr) end
+  NULL input-file-path-cstr !ptr
+
+  while
+    args sizeof(ptr) inc64-by
+    args @@ptr
+    let flag in
+      flag ?null if
+        false // break
+      else flag "-s"c cstreq if*
+        true silent !
+        true // continue
+      else flag "-r"c cstreq if*
+        true run !bool
+        true // continue
+      else flag "-m"c cstreq if*
+        args sizeof(ptr) inc64-by
+        args @@ptr
+        let arg in
+          arg ?null if
+            "ERROR: no argument is provided for -m flag\n" eputs
+            1 exit
+          end
+
+          arg cstr-to-str try-parse-int lnot if
+            "ERROR: could not parse `" eputs
+            arg cstr-to-str            eputs
+            "` as number\n"            eputs
+            1 exit
+          end
+
+          dup 0 < if
+            "ERROR: memory capacity must be positive\n" eputs
+            1 exit
+          end
+
+          bf-mem-cap !int
+        end
+
+        true // continue
+      else
+        flag input-file-path-cstr !ptr
+        false
+      end
+    end
+  do end
+
+  input-file-path-cstr @ptr ?null if
+    program @ptr stderr usage
+    "ERROR: no input file is provided\n" eputs
+    1 exit
+  end
+
+  memory base-file-path sizeof(Str) end
+  input-file-path-cstr @ptr cstr-to-str remove-ext base-file-path !Str
+
+  memory empty-token sizeof(Token) end
+  sizeof(Token) 0 empty-token memset drop
+
+  bf-mem-cap @int global-memory-capacity !
+  OP_PREP_PROC       0 empty-token push-op
+  OP_PUSH_GLOBAL_MEM 0 empty-token push-op
+
+  args @@ptr map-file
+  while peek n _ in n 0 > end do
+    let n s in
+      s @8 '+' = if
+        OP_INTRINSIC INTRINSIC_DUP    empty-token push-op
+        OP_INTRINSIC INTRINSIC_LOAD8  empty-token push-op
+        OP_PUSH_INT  1                empty-token push-op
+        OP_INTRINSIC INTRINSIC_PLUS   empty-token push-op
+        OP_INTRINSIC INTRINSIC_OVER   empty-token push-op
+        OP_INTRINSIC INTRINSIC_STORE8 empty-token push-op
+      else s @8 '-' = if*
+        OP_INTRINSIC INTRINSIC_DUP    empty-token push-op
+        OP_INTRINSIC INTRINSIC_LOAD8  empty-token push-op
+        OP_PUSH_INT  1                empty-token push-op
+        OP_INTRINSIC INTRINSIC_MINUS  empty-token push-op
+        OP_INTRINSIC INTRINSIC_OVER   empty-token push-op
+        OP_INTRINSIC INTRINSIC_STORE8 empty-token push-op
+      else s @8 '.' = if*
+        OP_PUSH_INT  1                  empty-token push-op
+        OP_INTRINSIC INTRINSIC_OVER     empty-token push-op
+        OP_PUSH_INT  stdout             empty-token push-op
+        OP_PUSH_INT  SYS_write          empty-token push-op
+        OP_INTRINSIC INTRINSIC_SYSCALL3 empty-token push-op
+        OP_INTRINSIC INTRINSIC_DROP     empty-token push-op
+      else s @8 ',' = if*
+        OP_PUSH_INT  1                  empty-token push-op
+        OP_INTRINSIC INTRINSIC_OVER     empty-token push-op
+        OP_PUSH_INT  stdin              empty-token push-op
+        OP_PUSH_INT  SYS_read           empty-token push-op
+        OP_INTRINSIC INTRINSIC_SYSCALL3 empty-token push-op
+        OP_INTRINSIC INTRINSIC_DROP     empty-token push-op
+      else s @8 '>' = if*
+        OP_PUSH_INT  1              empty-token push-op
+        OP_INTRINSIC INTRINSIC_PLUS empty-token push-op
+      else s @8 '<' = if*
+        OP_PUSH_INT  1               empty-token push-op
+        OP_INTRINSIC INTRINSIC_MINUS empty-token push-op
+      else s @8 '[' = if*
+        ops-count @ parse-block-stack-push
+        OP_WHILE 0 empty-token push-op
+        OP_INTRINSIC INTRINSIC_DUP    empty-token push-op
+        OP_INTRINSIC INTRINSIC_LOAD8  empty-token push-op
+        OP_PUSH_INT  0                empty-token push-op
+        OP_INTRINSIC INTRINSIC_NE     empty-token push-op
+
+        ops-count @ parse-block-stack-push
+        OP_DO        0                empty-token push-op
+      else s @8 ']' = if*
+        parse-block-stack-pop
+        parse-block-stack-pop
+        over sizeof(Op) * ops +ptr
+        over sizeof(Op) * ops +ptr
+        let do-ip while-ip do-op while-op in
+          ops-count @ do-ip - 1 +
+          do-op Op.operand ptr+
+          !int
+
+          OP_END_WHILE
+          ops-count @ while-ip -
+          empty-token
+          push-op
+        end
+      end
+
+      n 1 -
+      s 1 ptr+
+    end
+  end drop drop
+  OP_RET 0 empty-token push-op
+
+  markup-op-labels
+
+  memory prok sizeof(Proc) end
+  sizeof(Proc) 0 prok memset drop
+
+  "main" prok Proc.name ptr+ !Str
+
+  prok proc-define
+
+  tmp-end
+  base-file-path @Str tmp-append drop
+  ".asm"              tmp-append drop
+  1 ""c               tmp-append drop
+  generate-fasm-linux-x86_64
+
+  timeit/from-here
+    cmd-dev-null-stdout @
+      silent @ cmd-dev-null-stdout !
+      fpb-end
+        tmp-end
+        "fasm"c       tmp-append-ptr
+        "-m"c         tmp-append-ptr
+        "524288"c     tmp-append-ptr
+        fpb-end
+          base-file-path @Str fpb-append drop
+          ".asm"              fpb-append drop
+          1                   fpb-alloc  drop
+          tmp-append-ptr
+        fpb-end
+          base-file-path @Str fpb-append drop
+          ".tmp"              fpb-append drop
+          1                   fpb-alloc  drop
+          tmp-append-ptr
+        NULL          tmp-append-ptr
+        silent @ lnot cmd-echoed
+      fpb-rewind
+    cmd-dev-null-stdout !
+
+    fpb-end
+      fpb-end
+        base-file-path @Str fpb-append drop
+        1                   fpb-alloc  drop
+
+      fpb-end
+        base-file-path @Str fpb-append drop
+        ".tmp"              fpb-append drop
+        1                   fpb-alloc  drop
+
+      silent @ lnot if
+        "[INFO] renaming " puts
+        dup cstr-to-str    puts
+        " -> "             puts
+        over cstr-to-str   puts
+        "\n"               puts
+      end
+
+      rename 0 < if
+        "ERROR: could not rename the file\n" eputs
+        1 exit
+      end
+    fpb-rewind
+
+    fpb-end
+      tmp-end
+      "chmod"c      tmp-append-ptr
+      "+x"c         tmp-append-ptr
+      fpb-end
+        base-file-path @Str fpb-append drop
+        1                   fpb-alloc  drop
+        tmp-append-ptr
+      NULL          tmp-append-ptr
+      silent @ lnot cmd-echoed
+    fpb-rewind
+  "[PROFILE] fasm" silent @ timeit/to-here
+
+  run @bool if
+    base-file-path @Str tmp-str-to-cstr
+    let base-file-path-cstr in
+      tmp-end
+      base-file-path-cstr tmp-append-ptr
+      NULL tmp-append-ptr
+      silent @ lnot
+      cmd-echoed
+    end
+  end
+end
+
+// TODO: it would be nice to also automatically test the compiled executables of brain.porth

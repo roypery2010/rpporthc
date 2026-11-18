@@ -1,0 +1,1123 @@
+/// BEGIN Type Checking ///////////////////////
+
+const TypeSnap.stack sizeof(TypeStack) offset end
+const TypeSnap.ret sizeof(TypeStack) offset end
+const TypeSnap.visited sizeof(bool) offset end
+const sizeof(TypeSnap) reset end
+
+memory type-snaps sizeof(TypeSnap) OPS_CAP * end
+
+// Snap back to reality
+proc expect-arity
+  ptr // token
+  ptr // stack
+  int // arity
+  --
+  ptr // dst
+in
+  sizeof(TypeStack) tmp-alloc
+  let token stack arity tmp in
+    stack TypeStack.count ptr+ @int arity < if
+      token Token.loc ptr+                           eputloc
+      ": ERROR: Not enough arguments provided for `" eputs
+      token Token.text ptr+ @Str                     eputs
+      "`. Expected "                                 eputs
+      arity                                          eputu
+      " but got "                                    eputs
+      stack TypeStack.count ptr+ @int                eputu
+      ".\n"                                          eputs
+      1 exit
+    end
+
+    stack TypeStack.top ptr+ @ptr
+    0
+      while dup arity < do
+        let top i in
+          top tmp type-stack-push-frame
+          top TypeFrame.prev ptr+ @ptr
+          i 1 +
+        end
+      end
+    drop
+    drop
+
+    tmp type-stack-reverse
+  end
+end
+
+proc type-check-stack
+  ptr // token
+  ptr // stack
+  ptr // ins
+  ptr // outs
+in
+  memory outs sizeof(TypeStack) end
+  sizeof(TypeStack) swap outs memcpy drop
+  memory ins sizeof(TypeStack) end
+  sizeof(TypeStack) swap ins memcpy drop
+
+  let token stack in
+    0 // args count
+      while
+        stack ?type-stack-empty
+        ins   ?type-stack-empty
+        lor
+        lnot
+      do
+        stack TypeStack.top ptr+ @ptr
+        ins   TypeStack.top ptr+ @ptr
+        let args-count actual expected in
+          expected TypeFrame.type ptr+ @int
+          actual   TypeFrame.type ptr+ @int
+          != if
+            token Token.loc ptr+                            eputloc
+            ": ERROR: Argument "                            eputs
+            args-count                                      eputu
+            " of `"                                         eputs
+            token Token.text ptr+ @Str                      eputs
+            "` is expected to be type `"                    eputs
+            expected TypeFrame.type ptr+ @int display-type  eputs
+            "` but got type `"                              eputs
+            actual   TypeFrame.type ptr+ @int display-type  eputs
+            "`\n"                                           eputs
+
+            actual TypeFrame.loc ptr+                       eputloc
+            ": NOTE: Argument "                             eputs
+            args-count                                      eputu
+            " was provided here\n"                          eputs
+
+            expected TypeFrame.loc ptr+                     eputloc
+            ": NOTE: Expected type was declared here\n"     eputs
+
+            1 exit
+          end
+
+          stack type-stack-pop
+          ins   type-stack-pop
+          args-count 1 +
+        end
+      end
+
+      ins ?type-stack-empty lnot if
+        token Token.loc ptr+                            eputloc
+        ": ERROR: Not enough arguments provided for `"  eputs
+        token  Token.text ptr+ @Str                     eputs
+        "`. Expected "                                  eputs
+        dup ins TypeStack.count ptr+ @int +             eputu
+        " but got "                                     eputs
+        dup                                             eputu
+        ".\n"                                           eputs
+        // TODO: reporting what arguments were not provided is not implemented
+        1 exit
+      end
+    drop // args count
+
+    outs type-stack-reverse TypeStack.top ptr+ @ptr
+    while dup NULL ptr!= do
+      dup TypeFrame.type ptr+ @int
+      token Token.loc ptr+
+      stack
+      type-stack-push
+
+      TypeFrame.prev ptr+ @ptr
+    end drop
+  end
+end
+
+proc type-check-over
+  ptr // token
+  ptr // stack
+in
+  let token stack in
+    token stack 2 expect-arity
+    sizeof(TypeStack) tmp-alloc
+
+    let ins outs in
+      sizeof(TypeStack) ins outs memcpy drop
+
+      ins TypeStack.top ptr+ @ptr TypeFrame.prev ptr+ @ptr
+      outs
+      type-stack-push-frame
+
+      token stack ins outs type-check-stack
+    end
+  end
+end
+
+proc type-check-rot
+  ptr // token
+  ptr // stack
+in
+  let token stack in
+    token stack 3 expect-arity
+    sizeof(TypeStack) tmp-alloc
+
+    let ins outs in
+      ins TypeStack.top ptr+ @ptr TypeFrame.prev ptr+ @ptr
+      outs type-stack-push-frame
+
+      ins TypeStack.top ptr+ @ptr
+      outs type-stack-push-frame
+
+      ins TypeStack.top ptr+ @ptr TypeFrame.prev ptr+ @ptr TypeFrame.prev ptr+ @ptr
+      outs type-stack-push-frame
+
+      token stack ins outs type-check-stack
+    end
+  end
+end
+
+proc type-check-dup
+  ptr // token
+  ptr // stack
+in
+  let token stack in
+    token stack 1 expect-arity
+    sizeof(TypeStack) tmp-alloc
+
+    let ins outs in
+      sizeof(TypeStack) ins outs memcpy drop
+      ins TypeStack.top ptr+ @ptr
+      outs
+      type-stack-push-frame
+
+      token stack ins outs type-check-stack
+    end
+  end
+end
+
+proc type-check-drop
+  ptr // token
+  ptr // stack
+in
+  over over 1 expect-arity
+  sizeof(TypeStack) tmp-alloc
+  type-check-stack
+end
+
+proc type-check-swap
+  ptr // token
+  ptr // stack
+in
+  over over 2 expect-arity
+  dup type-stack-reverse
+  type-check-stack
+end
+
+proc type-check-binary-int-operator
+  ptr // token
+  ptr // stack
+in
+  memory ins sizeof(TypeStack) end
+  memory outs sizeof(TypeStack) end
+
+  over Token.loc ptr+
+  let token stack loc in
+    sizeof(TypeStack) 0 ins memset drop
+    DATATYPE_INT loc ins type-stack-push
+    DATATYPE_INT loc ins type-stack-push
+
+    sizeof(TypeStack) 0 outs memset drop
+    DATATYPE_INT loc outs type-stack-push
+
+    token stack ins outs type-check-stack
+  end
+end
+
+proc type-check-if-op
+  ptr // token
+  ptr // stack
+in
+  memory ins sizeof(TypeStack) end
+  memory outs sizeof(TypeStack) end
+
+  over Token.loc ptr+
+  let token stack loc in
+    sizeof(TypeStack) 0 ins memset drop
+    DATATYPE_BOOL loc ins type-stack-push
+
+    sizeof(TypeStack) 0 outs memset drop
+
+    token stack ins outs type-check-stack
+  end
+end
+
+proc type-check-store-operator
+  ptr // token
+  ptr // stack
+in
+  let token stack in
+    token stack 2 expect-arity
+    sizeof(TypeStack) tmp-alloc
+    let ins outs in
+      DATATYPE_PTR
+      ins TypeStack.top ptr+ @ptr TypeFrame.type ptr+
+      !int
+
+      token stack ins outs type-check-stack
+    end
+  end
+end
+
+// proc ! a a ptr-to in .. end
+
+proc type-check-store-ptr-to
+  ptr // token
+  ptr // stack
+in
+  over over 2 expect-arity
+  sizeof(TypeStack) tmp-alloc
+  let token stack ins outs in
+    ins TypeStack.top ptr+ @ptr
+    let frame in
+      frame TypeFrame.type ptr+ @int
+      unpack-type
+        let ptr-count prim in
+          ptr-count 1 < if
+            frame TypeFrame.loc ptr+ eputloc
+            ": ERROR: the destination of the store operation must be a pointer\n" eputs
+            1 exit
+          end
+
+          ptr-count 1 -
+          prim
+        end
+      pack-type
+      frame TypeFrame.prev ptr+ @ptr TypeFrame.type ptr+
+      !int
+    end
+
+    token stack ins outs type-check-stack
+  end
+end
+
+proc type-check-load-ptr-to
+  ptr // token
+  ptr // stack
+in
+  over over 1 expect-arity
+  sizeof(TypeStack) tmp-alloc
+  let token stack ins outs in
+    ins TypeStack.top ptr+ @ptr
+    let frame in
+      frame TypeFrame.type ptr+ @int unpack-type
+      frame TypeFrame.loc ptr+
+      let count-ptr prim loc in
+        count-ptr 0 <= if
+          loc eputloc
+          ": ERROR: @ can only accept ptr-to types\n" eputs
+          1 exit
+        end
+
+        count-ptr 1 - prim pack-type
+        loc
+        outs
+        type-stack-push
+      end
+    end
+
+    token stack ins outs type-check-stack
+  end
+end
+
+proc type-check-load-operator
+  ptr // token
+  ptr // stack
+in
+  memory ins sizeof(TypeStack) end
+  memory outs sizeof(TypeStack) end
+
+  over Token.loc ptr+
+  let token stack loc in
+    sizeof(TypeStack) 0 ins memset drop
+    DATATYPE_PTR loc ins type-stack-push
+
+    sizeof(TypeStack) 0 outs memset drop
+    DATATYPE_INT loc outs type-stack-push
+
+    token stack ins outs type-check-stack
+  end
+end
+
+proc type-check-unary-int-operator
+  ptr // token
+  ptr // stack
+in
+  memory ins sizeof(TypeStack) end
+  memory outs sizeof(TypeStack) end
+
+  over Token.loc ptr+
+  let token stack loc in
+    sizeof(TypeStack) 0 ins memset drop
+    DATATYPE_INT loc ins type-stack-push
+
+    sizeof(TypeStack) 0 outs memset drop
+    DATATYPE_INT loc outs type-stack-push
+
+    token stack ins outs type-check-stack
+  end
+end
+
+proc type-check-cmp-int-operator
+  ptr // token
+  ptr // stack
+in
+  memory ins sizeof(TypeStack) end
+  memory outs sizeof(TypeStack) end
+
+  over Token.loc ptr+
+  let token stack loc in
+    sizeof(TypeStack) 0 ins memset drop
+    DATATYPE_INT loc ins type-stack-push
+    DATATYPE_INT loc ins type-stack-push
+
+    sizeof(TypeStack) 0 outs memset drop
+    DATATYPE_BOOL loc outs type-stack-push
+
+    token stack ins outs type-check-stack
+  end
+end
+
+proc type-check-divmod-operator
+  ptr // token
+  ptr // stack
+in
+  memory ins sizeof(TypeStack) end
+  memory outs sizeof(TypeStack) end
+
+  over Token.loc ptr+
+  let token stack loc in
+    sizeof(TypeStack) 0 ins memset drop
+    DATATYPE_INT loc ins type-stack-push
+    DATATYPE_INT loc ins type-stack-push
+
+    sizeof(TypeStack) 0 outs memset drop
+    DATATYPE_INT loc outs type-stack-push
+    DATATYPE_INT loc outs type-stack-push
+
+    token stack ins outs type-check-stack
+  end
+end
+
+proc type-check-call-like
+  ptr // op
+  ptr // stack
+in
+  memory ins sizeof(TypeStack) end
+  memory outs sizeof(TypeStack) end
+
+  swap
+  dup  Op.operand ptr+ @int
+  swap Op.token   ptr+
+  let stack operand token in
+    operand procs-count @ >= if
+      here eputs ": Assertion Failed: invalid procedure index" eputs
+      1 exit
+    end
+
+    operand sizeof(Proc) * procs +ptr
+    let prok in
+      sizeof(TypeStack) prok Proc.ins  ptr+ ins  memcpy drop
+      sizeof(TypeStack) prok Proc.outs ptr+ outs memcpy drop
+    end
+
+    DATATYPE_ADDR token Token.loc ptr+ ins type-stack-push
+
+    token stack ins outs type-check-stack
+  end
+end
+
+proc type-check-peek
+  int // bind count
+  ptr // token
+  ptr // stack
+  ptr // ret
+in
+  let bind-count token stack ret in
+    stack TypeStack.count ptr+ @int
+    let stack-size in
+      stack-size bind-count < if
+        token Token.loc ptr+                                                   eputloc
+        ": ERROR: Data stack does not have enough elements to bind. Expected " eputs
+        bind-count                                                             eputu
+        " but got "                                                            eputs
+        stack-size                                                             eputu
+        ". Here is the data stack: \n"                                         eputs
+        stack stderr type-stack-dump
+        1 exit
+      end
+    end
+
+    stack TypeStack.top ptr+ @ptr
+    bind-count
+    while dup 0 > do
+      let top count in
+        top ret type-stack-push-frame
+        top TypeFrame.prev ptr+ @ptr
+        count 1 -
+      end
+    end
+    drop
+    drop
+  end
+end
+
+proc type-check-bind
+  int // bind count
+  ptr // token
+  ptr // stack
+  ptr // ret
+in
+  let bind-count token stack ret in
+    stack TypeStack.count ptr+ @int
+    let stack-count in
+      stack-count bind-count < if
+        token Token.loc ptr+                                                   eputloc
+        ": ERROR: Data stack does not have enough elements to bind. Expected " eputs
+        stack-count                                                            eputu
+        " but got "                                                            eputs
+        bind-count                                                             eputu
+        ". Here is the data stack: \n"                                         eputs
+        stack stderr type-stack-dump
+        1 exit
+      end
+    end
+
+    bind-count
+    while dup 0 > do
+      stack TypeStack.top ptr+ @ptr ret type-stack-push-frame
+      stack type-stack-pop
+      1 -
+    end
+    drop
+  end
+end
+
+proc type-check-unbind
+  int // bind count
+  ptr // ret
+in
+  let bind-count ret in
+    bind-count ret TypeStack.count ptr+ @int > if
+      here eputs ": Assertion Failed: the return stack does not have enough frames to unbind" eputs
+      1 exit
+    end
+
+    bind-count
+    while dup 0 > do
+      ret type-stack-pop
+      1 -
+    end
+    drop
+  end
+end
+
+proc type-check-push-bind
+  int // bind count
+  ptr // token
+  ptr // stack
+  ptr // ret
+in
+  let bind-count token stack ret in
+    bind-count ret TypeStack.count ptr+ @int > if
+      here eputs ": Assertion Failed: the return stack does not have enough frames to address for OP_PUSH_BIND. This is likely a bug in the compilation process because it should've caught that.\n" eputs
+      1 exit
+    end
+
+    ret TypeStack.top ptr+ @ptr
+    bind-count
+    while dup 0 > do
+      let top count in
+        top TypeFrame.prev ptr+ @ptr
+        count 1 -
+      end
+    end
+
+    let frame _ in
+      frame TypeFrame.type ptr+ @int
+      token Token.loc ptr+
+      stack
+      type-stack-push
+    end
+  end
+end
+
+proc type-check-cast
+  int // type
+  ptr // token
+  ptr // stack
+in
+  let type token stack in
+    token stack 1 expect-arity
+    sizeof(TypeStack) tmp-alloc
+    let ins outs in
+      type token Token.loc ptr+ outs type-stack-push
+      token stack ins outs type-check-stack
+    end
+  end
+end
+
+proc type-check-syscall
+  int // arity
+  ptr // token
+  ptr // stack
+in
+  let arity token stack in
+    token stack arity 1 + expect-arity
+    sizeof(TypeStack) tmp-alloc
+    let ins outs in
+      DATATYPE_INT
+      ins TypeStack.top ptr+ @ptr TypeFrame.type ptr+
+      !int
+
+      DATATYPE_INT token Token.loc ptr+ outs type-stack-push
+
+      token stack ins outs type-check-stack
+    end
+  end
+end
+
+proc type-check-expected-outs
+  ptr // stack
+  ptr // outs
+  int // ip
+in
+  sizeof(Op) * ops +ptr
+
+  memory outs sizeof(TypeStack) end
+  memory stack sizeof(TypeStack) end
+
+  let op in
+    sizeof(TypeStack) swap outs memcpy drop
+    sizeof(TypeStack) swap stack memcpy drop
+
+    while
+      stack ?type-stack-empty
+      outs  ?type-stack-empty
+      lor
+      lnot
+    do
+      stack TypeStack.top ptr+ @ptr
+      outs  TypeStack.top ptr+ @ptr
+      let actual expected in
+        actual   TypeFrame.type ptr+ @int
+        expected TypeFrame.type ptr+ @int
+        != if
+          op Op.token ptr+ Token.loc ptr+                 eputloc
+          ": ERROR: Unexpected data on the stack\n"       eputs
+
+          actual TypeFrame.loc ptr+                       eputloc
+          ": NOTE: Unexpected type `"                     eputs
+          actual TypeFrame.type ptr+ @int display-type    eputs
+          "`\n"                                           eputs
+
+          expected TypeFrame.loc ptr+                     eputloc
+          ": NOTE: Expected type `"                       eputs
+          expected TypeFrame.type ptr+ @int display-type  eputs
+          "`\n"                                           eputs
+
+          1 exit
+        end
+      end
+
+      stack type-stack-pop
+      outs  type-stack-pop
+    end
+
+    stack TypeStack.count ptr+ @int
+    outs  TypeStack.count ptr+ @int
+    let n m in
+      n m > if
+        op Op.token ptr+ Token.loc ptr+ eputloc
+        ": ERROR: Unhandled data on the stack\n" eputs
+        stack stderr type-stack-dump
+        1 exit
+      end
+
+      n m < if
+        op Op.token ptr+ Token.loc ptr+ eputloc
+        ": ERROR: Insufficient data on the stack\n" eputs
+        outs stderr type-stack-dump
+        1 exit
+      end
+    end
+  end
+end
+
+// NOTE: the queue of instruction pointers for BFS in type-check-program-from
+const IPQ_CAP 128 end
+var ipq-begin int end
+var ipq-size  int end
+memory ipq sizeof(int) IPQ_CAP * end
+
+inline proc ipq-clear in 0 ipq-size ! end
+
+inline proc ipq-pop in
+  ipq-size @ 0 <= if
+    here eputs ": Assertion Failed: ipq underflow" eputs
+    1 exit
+  end
+
+  ipq-size dec
+end
+
+inline proc ipq-nq int in
+  ipq-size @ IPQ_CAP >= if
+    here eputs ": Assertion Failed: ipq overflow\n" eputs
+    1 exit
+  end
+
+  ipq-begin @
+  ipq-size  @ +
+  IPQ_CAP mod
+  sizeof(int) *
+  ipq +ptr
+  !int
+
+  ipq-size inc
+end
+
+inline proc ipq-dq -- int in
+  ipq-size @ 0 <= if
+    here eputs ": Assertion Failed: ipq underflow" eputs
+    1 exit
+  end
+
+  ipq-begin @
+  sizeof(int) *
+  ipq +ptr
+  @int
+
+  ipq-begin @
+  1 +
+  IPQ_CAP mod
+  ipq-begin !
+
+  ipq-size @
+  1 -
+  ipq-size !
+end
+
+inline proc ?ipq-empty -- bool in ipq-size @ 0 <= end
+
+proc type-check-proc-at-addr
+  int // addr of the OP_PREP_PROC
+  ptr // ins
+  ptr // outs
+in
+  memory outs sizeof(TypeStack) end
+  sizeof(TypeStack) swap outs memcpy drop
+  memory stack sizeof(TypeStack) end
+  sizeof(TypeStack) swap stack memcpy drop
+  memory ret sizeof(TypeStack) end
+  sizeof(TypeStack) 0 ret memset drop
+
+  // Handle initial OP_PREP_PROC
+  let ip in
+    ip sizeof(Op)       * ops        +ptr
+    ip sizeof(TypeSnap) * type-snaps +ptr
+    let op snap in
+      op Op.type ptr+ @int OP_PREP_PROC != if
+        ip print
+        here eputs
+        ": Assertion Failed: The procedure must start with " eputs
+        OP_PREP_PROC op-type-as-str                          eputs
+        ". Got "                                             eputs
+        op Op.type ptr+ @int op-type-as-str                  eputs
+        " instead.\n"                                        eputs
+        op Op.token ptr+ Token.loc ptr+ located-here
+        1 exit
+      end
+
+      snap TypeSnap.visited ptr+
+      snap TypeSnap.stack ptr+
+      snap TypeSnap.ret ptr+
+      let snap-visited snap-stack snap-ret in
+        snap-visited @bool if
+          here eputs ": Assertion Failed: The procedure was already type checked?\n" eputs
+          op Op.token ptr+ Token.loc ptr+ located-here
+          1 exit
+        end
+
+        true snap-visited !bool
+        sizeof(TypeStack) stack snap-stack memcpy drop
+        sizeof(TypeStack) ret   snap-ret   memcpy drop
+      end
+    end
+
+    ipq-clear
+    ip ipq-nq
+    ip 1 + ipq-nq
+  end
+
+  while ?ipq-empty lnot do
+    tmp-end
+      ipq-dq ipq-dq
+      let prev-ip ip in
+        ip ops-count @ >= if
+          here eputs ": Assertion Failed: invalid ip: " eputs ip eputi "\n" eputs
+          1 exit
+        end
+
+        prev-ip sizeof(TypeSnap) * type-snaps +ptr
+        ip      sizeof(TypeSnap) * type-snaps +ptr
+        ip sizeof(Op) * ops +ptr
+        dup Op.type    ptr+ swap
+        dup Op.operand ptr+ swap
+        dup Op.token   ptr+ swap
+        over Token.loc ptr+ swap
+        let prev-snap snap type operand token loc op in
+          prev-snap TypeSnap.visited ptr+ @bool lnot if
+            here eputs ": Assertion Failed: previous type snap must be visited\n" eputs
+            1 exit
+          end
+
+          sizeof(TypeStack) prev-snap TypeSnap.stack ptr+ stack memcpy drop
+          sizeof(TypeStack) prev-snap TypeSnap.ret   ptr+ ret   memcpy drop
+
+          assert "Exhaustive handling of Op types in type-check-proc-at-addr" COUNT_OPS 28 = end
+          type @int OP_PUSH_INT = if
+            DATATYPE_INT loc stack type-stack-push
+            ip ipq-nq
+            ip 1 + ipq-nq
+          else type @int OP_PUSH_BOOL = if*
+            DATATYPE_BOOL loc stack type-stack-push
+            ip ipq-nq
+            ip 1 + ipq-nq
+          else type @int OP_PUSH_PTR = if*
+            DATATYPE_PTR loc stack type-stack-push
+            ip ipq-nq
+            ip 1 + ipq-nq
+          else type @int OP_PUSH_ADDR_OF = if*
+            DATATYPE_ADDR loc stack type-stack-push
+            ip ipq-nq
+            ip 1 + ipq-nq
+          else type @int OP_PUSH_LOCAL_MEM = if*
+            DATATYPE_PTR loc stack type-stack-push
+            ip ipq-nq
+            ip 1 + ipq-nq
+          else type @int OP_PUSH_GLOBAL_MEM = if*
+            DATATYPE_PTR loc stack type-stack-push
+            ip ipq-nq
+            ip 1 + ipq-nq
+          else type @int OP_PUSH_GLOBAL_VAR = if*
+            operand @int sizeof(Var) * global-vars +ptr Var.type ptr+ @int
+            unpack-type
+            let ptr-count prim in
+              ptr-count 1 +
+              prim
+            end
+            pack-type
+            loc
+            stack
+            type-stack-push
+
+            ip ipq-nq
+            ip 1 + ipq-nq
+          else type @int OP_PUSH_LOCAL_VAR = if*
+            operand @int
+            0xFFFF_FFFF and
+            unpack-type
+            let ptr-count prim in
+              ptr-count 1 +
+              prim
+            end
+            pack-type
+            loc
+            stack
+            type-stack-push
+
+            ip ipq-nq
+            ip 1 + ipq-nq
+          else type @int OP_PUSH_STR = if*
+            DATATYPE_INT loc stack type-stack-push
+            DATATYPE_PTR loc stack type-stack-push
+            ip ipq-nq
+            ip 1 + ipq-nq
+          else type @int OP_PUSH_CSTR = if*
+            DATATYPE_PTR loc stack type-stack-push
+            ip ipq-nq
+            ip 1 + ipq-nq
+          else type @int OP_IF = type @int OP_IFSTAR = lor if*
+            token stack type-check-if-op
+            // then branch
+            ip ipq-nq
+            ip 1 +            ipq-nq
+            // else branch
+            ip ipq-nq
+            ip operand @int + ipq-nq
+          else type @int OP_ELSE = if*
+            ip ipq-nq
+            ip operand @int + ipq-nq
+          else type @int OP_END_IF = if*
+            ip ipq-nq
+            ip 1 + ipq-nq
+          else type @int OP_END_WHILE = if*
+            ip ipq-nq
+            ip operand @int - ipq-nq
+          else type @int OP_PREP_PROC = if*
+            ip ipq-nq
+            ip 1 + ipq-nq
+          else type @int OP_RET = if*
+            stack outs ip type-check-expected-outs
+          else type @int OP_CALL = if*
+            operand @int
+            let proc-id in
+              proc-id procs-count @ >=
+              proc-id 0 <
+              lor if
+                here eputs ": Assertion Failed: expect proc always exist with this specific address. Something went wrong during the compilation process\n" eputs
+                1 exit
+              end
+
+              proc-id sizeof(Proc) * procs +ptr
+              let prok in
+                token
+                stack
+                prok Proc.ins  ptr+
+                prok Proc.outs ptr+
+                type-check-stack
+
+                ip ipq-nq
+                ip 1 + ipq-nq
+              end
+            end
+          else type @int OP_CALL_LIKE = if*
+            op stack type-check-call-like
+            ip ipq-nq
+            ip 1 + ipq-nq
+          else type @int OP_BIND_LET = if*
+            operand @int token stack ret type-check-bind
+            ip ipq-nq
+            ip 1 + ipq-nq
+          else type @int OP_BIND_PEEK = if*
+            operand @int token stack ret type-check-peek
+            ip ipq-nq
+            ip 1 + ipq-nq
+          else type @int OP_UNBIND = if*
+            operand @int ret type-check-unbind
+            ip ipq-nq
+            ip 1 + ipq-nq
+          else type @int OP_PUSH_BIND = if*
+            operand @int token stack ret type-check-push-bind
+            ip ipq-nq
+            ip 1 + ipq-nq
+          else type @int OP_INLINED = if*
+            operand @int
+            let proc-id in
+              proc-id procs-count @ >=
+              proc-id 0 <
+              lor if
+                here eputs ": Assertion Failed: expect proc always exist with this specific address. Something went wrong during the compilation process\n" eputs
+                1 exit
+              end
+
+              proc-id sizeof(Proc) * procs +ptr
+              let prok in
+                token
+                stack
+                prok Proc.ins  ptr+
+                prok Proc.outs ptr+
+                type-check-stack
+
+                ip ipq-nq
+                ip
+                prok Proc.size ptr+ @int 1 +
+                +
+                ipq-nq
+              end
+            end
+          else type @int OP_WHILE = if*
+            ip ipq-nq
+            ip 1 + ipq-nq
+          else type @int OP_DO = if*
+            token stack type-check-if-op
+            // then branch
+            ip ipq-nq
+            ip 1 +            ipq-nq
+            // else branch
+            ip ipq-nq
+            ip operand @int + ipq-nq
+          else type @int OP_CAST = if*
+            operand @int token stack type-check-cast
+            ip ipq-nq
+            ip 1 + ipq-nq
+          else type @int OP_INTRINSIC = if*
+            assert "Exhaustive handling of Intrinsics in type-check-proc-at-addr" COUNT_INTRINSICS 48 = end
+
+            operand @int
+              dup INTRINSIC_PLUS = if
+                token stack type-check-binary-int-operator
+              else dup INTRINSIC_MINUS = if*
+                token stack type-check-binary-int-operator
+              else dup INTRINSIC_MUL = if*
+                token stack type-check-binary-int-operator
+              else dup INTRINSIC_DIVMOD = if*
+                token stack type-check-divmod-operator
+              else dup INTRINSIC_IDIVMOD = if*
+                token stack type-check-divmod-operator
+              else dup INTRINSIC_MAX = if*
+                token stack type-check-binary-int-operator
+              else dup INTRINSIC_EQ = if*
+                token stack type-check-cmp-int-operator
+              else dup INTRINSIC_GT = if*
+                token stack type-check-cmp-int-operator
+              else dup INTRINSIC_LT = if*
+                token stack type-check-cmp-int-operator
+              else dup INTRINSIC_GE = if*
+                token stack type-check-cmp-int-operator
+              else dup INTRINSIC_LE = if*
+                token stack type-check-cmp-int-operator
+              else dup INTRINSIC_NE = if*
+                token stack type-check-cmp-int-operator
+              else dup INTRINSIC_SHR = if*
+                token stack type-check-binary-int-operator
+              else dup INTRINSIC_SHL = if*
+                token stack type-check-binary-int-operator
+              else dup INTRINSIC_OR = if*
+                token stack type-check-binary-int-operator
+              else dup INTRINSIC_AND = if*
+                token stack type-check-binary-int-operator
+              else dup INTRINSIC_NOT = if*
+                token stack type-check-unary-int-operator
+              else dup INTRINSIC_PRINT = if*
+                token stack type-check-drop
+              else dup INTRINSIC_DUP = if*
+                token stack type-check-dup
+              else dup INTRINSIC_SWAP = if*
+                token stack type-check-swap
+              else dup INTRINSIC_DROP = if*
+                token stack type-check-drop
+              else dup INTRINSIC_OVER = if*
+                token stack type-check-over
+              else dup INTRINSIC_ROT = if*
+                token stack type-check-rot
+              else dup INTRINSIC_LOAD8 = if*
+                token stack type-check-load-operator
+              else dup INTRINSIC_STORE8 = if*
+                token stack type-check-store-operator
+              else dup INTRINSIC_LOAD16 = if*
+                token stack type-check-load-operator
+              else dup INTRINSIC_STORE16 = if*
+                token stack type-check-store-operator
+              else dup INTRINSIC_LOAD32 = if*
+                token stack type-check-load-operator
+              else dup INTRINSIC_STORE32 = if*
+                token stack type-check-store-operator
+              else dup INTRINSIC_LOAD64 = if*
+                token stack type-check-load-operator
+              else dup INTRINSIC_STORE64 = if*
+                token stack type-check-store-operator
+              else dup INTRINSIC_LOAD_PTR_TO = if*
+                token stack type-check-load-ptr-to
+              else dup INTRINSIC_STORE_PTR_TO = if*
+                token stack type-check-store-ptr-to
+              else dup INTRINSIC_CAST_PTR = if*
+                DATATYPE_PTR token stack type-check-cast
+              else dup INTRINSIC_CAST_INT = if*
+                DATATYPE_INT token stack type-check-cast
+              else dup INTRINSIC_CAST_BOOL = if*
+                DATATYPE_BOOL token stack type-check-cast
+              else dup INTRINSIC_CAST_ADDR = if*
+                DATATYPE_ADDR token stack type-check-cast
+              else dup INTRINSIC_ARGC = if*
+                DATATYPE_INT loc stack type-stack-push
+              else dup INTRINSIC_ARGV = if*
+                DATATYPE_PTR loc stack type-stack-push
+              else dup INTRINSIC_ENVP = if*
+                DATATYPE_PTR loc stack type-stack-push
+              else dup INTRINSIC_SYSCALL0 = if*
+                0 token stack type-check-syscall
+              else dup INTRINSIC_SYSCALL1 = if*
+                1 token stack type-check-syscall
+              else dup INTRINSIC_SYSCALL2 = if*
+                2 token stack type-check-syscall
+              else dup INTRINSIC_SYSCALL3 = if*
+                3 token stack type-check-syscall
+              else dup INTRINSIC_SYSCALL4 = if*
+                4 token stack type-check-syscall
+              else dup INTRINSIC_SYSCALL5 = if*
+                5 token stack type-check-syscall
+              else dup INTRINSIC_SYSCALL6 = if*
+                6 token stack type-check-syscall
+              else dup INTRINSIC_??? = if*
+                loc                                                         eputloc
+                ": DEBUG: Stopping the compilation. Current stack state:\n" eputs
+                stack stderr type-stack-dump
+                1 exit
+              else
+                here eputs ": unreachable\n" eputs
+                64 exit
+              end
+            drop
+
+            ip ipq-nq
+            ip 1 + ipq-nq
+          else
+            here eputs ": unreachable\n" eputs
+            69 exit
+          end
+
+          snap TypeSnap.visited ptr+
+          snap TypeSnap.stack ptr+
+          snap TypeSnap.ret ptr+
+          let snap-visited snap-stack snap-ret in
+            snap-visited @bool lnot if
+              true snap-visited !bool
+              sizeof(TypeStack) stack snap-stack memcpy drop
+              sizeof(TypeStack) ret   snap-ret   memcpy drop
+            else
+              stack snap-stack ip type-check-expected-outs
+              ipq-pop
+              ipq-pop
+            end
+          end
+        end
+      end
+    tmp-rewind
+  end
+end
+
+// TODOO: multi-branch type check error reporting
+proc type-check-program in
+  memory prok sizeof(ptr) end
+
+  timeit/from-here
+
+  "main" proc-lookup-by-name
+    dup NULL ptr= if
+      "ERROR: `main` procedure was not provided\n" eputs
+      1 exit
+    end
+
+    dup Proc.ins ptr+ ?type-stack-empty lnot if
+      dup Proc.loc ptr+                                           eputloc
+      ": ERROR: `main` procedure must not accept any arguments\n" eputs
+      1 exit
+    end
+
+    dup Proc.outs ptr+ ?type-stack-empty lnot if
+      dup Proc.loc ptr+                                      eputloc
+      ": ERROR: `main` procedure must not return any data\n" eputs
+      1 exit
+    end
+  drop
+
+  0
+    while dup procs-count @ < do
+      dup sizeof(Proc) * procs +ptr
+      let prok in
+        type-frame-pool-count @
+          prok Proc.addr ptr+ @int
+          prok Proc.ins  ptr+
+          prok Proc.outs ptr+
+          type-check-proc-at-addr
+        type-frame-pool-count !
+      end
+      1 +
+    end
+  drop
+
+  "[PROFILE] Type checking" silent @ timeit/to-here
+end
+/// END Type Checking ///////////////////////

@@ -1,0 +1,426 @@
+// Linux syscall handles and the wrappers built on them.
+//
+// The numbers below are the x86_64 Linux table, but they are treated as
+// OS-independent handles: every backend that is not Linux translates them at
+// the call site (the C runtime dispatches on these numbers, `fasmarm` maps them
+// to the aarch64 table).  A program can therefore call `write` on any target.
+//
+// The values that are *not* handles, that get inlined into the program as
+// numbers -- struct layouts, flag bits, errno values, ioctl requests -- live in
+// os.porth, which has one implementation per OS.  Use `porth com -os <name>` to
+// pick a different one.
+
+include "core.porth"
+include "os.porth"
+
+/// Syscalls
+// Stolen from https://filippo.io/linux-syscall-table/
+// Not all of the syscalls here are useful/implemented. I literally just copy-pasted them.
+// We can clean this up later.
+const SYS_read 33554435 end
+const SYS_write 33554436 end
+const SYS_open 33554437 end
+const SYS_close 33554438 end
+const SYS_stat 33554620 end
+const SYS_fstat 33554621 end
+const SYS_lstat 33554622 end
+const SYS_poll 33554662 end
+const SYS_lseek 33554631 end
+const SYS_mmap 33554629 end
+const SYS_mprotect 33554506 end
+const SYS_munmap 33554505 end
+const SYS_brk 0 end
+const SYS_rt_sigaction 33554478 end
+const SYS_rt_sigprocmask 33554480 end
+const SYS_rt_sigreturn 33554616 end
+const SYS_ioctl 33554486 end
+const SYS_pread64 33554585 end
+const SYS_pwrite64 33554586 end
+const SYS_readv 33554552 end
+const SYS_writev 33554553 end
+const SYS_access 33554465 end
+const SYS_pipe 33554474 end
+const SYS_select 33554525 end
+const SYS_sched_yield 0 end
+const SYS_mremap 0 end
+const SYS_msync 33554497 end
+const SYS_mincore 33554510 end
+const SYS_madvise 33554507 end
+const SYS_shmget 33554697 end
+const SYS_shmat 33554694 end
+const SYS_shmctl 33554695 end
+const SYS_dup 33554473 end
+const SYS_dup2 33554522 end
+const SYS_pause 0 end
+const SYS_nanosleep 0 end
+const SYS_getitimer 33554518 end
+const SYS_alarm 0 end
+const SYS_setitimer 33554515 end
+const SYS_getpid 33554452 end
+const SYS_sendfile 33554769 end
+const SYS_socket 33554529 end
+const SYS_connect 33554530 end
+const SYS_accept 33554462 end
+const SYS_sendto 33554565 end
+const SYS_recvfrom 33554461 end
+const SYS_sendmsg 33554460 end
+const SYS_recvmsg 33554459 end
+const SYS_shutdown 33554566 end
+const SYS_bind 33554536 end
+const SYS_listen 33554538 end
+const SYS_getsockname 33554464 end
+const SYS_getpeername 33554463 end
+const SYS_socketpair 33554567 end
+const SYS_setsockopt 33554537 end
+const SYS_getsockopt 33554550 end
+const SYS_clone 0 end
+const SYS_fork 33554434 end
+const SYS_vfork 33554498 end
+const SYS_execve 33554491 end
+const SYS_exit 33554433 end
+const SYS_wait4 33554439 end
+const SYS_kill 33554469 end
+const SYS_uname 0 end
+const SYS_semget 33554687 end
+const SYS_semop 33554688 end
+const SYS_semctl 33554686 end
+const SYS_shmdt 33554696 end
+const SYS_msgget 33554691 end
+const SYS_msgsnd 33554692 end
+const SYS_msgrcv 33554693 end
+const SYS_msgctl 33554690 end
+const SYS_fcntl 33554524 end
+const SYS_flock 33554563 end
+const SYS_fsync 33554527 end
+const SYS_fdatasync 33554619 end
+const SYS_truncate 33554632 end
+const SYS_ftruncate 33554633 end
+const SYS_getdents 0 end
+const SYS_getcwd 0 end
+const SYS_chdir 33554444 end
+const SYS_fchdir 33554445 end
+const SYS_rename 33554560 end
+const SYS_mkdir 33554568 end
+const SYS_rmdir 33554569 end
+const SYS_creat 0 end
+const SYS_link 33554441 end
+const SYS_unlink 33554442 end
+const SYS_symlink 33554489 end
+const SYS_readlink 33554490 end
+const SYS_chmod 33554447 end
+const SYS_fchmod 33554556 end
+const SYS_chown 33554448 end
+const SYS_fchown 33554555 end
+const SYS_lchown 33554796 end
+const SYS_umask 33554492 end
+const SYS_gettimeofday 33554548 end
+const SYS_getrlimit 33554626 end
+const SYS_getrusage 33554549 end
+const SYS_sysinfo 0 end
+const SYS_times 0 end
+const SYS_ptrace 33554458 end
+const SYS_getuid 33554456 end
+const SYS_syslog 0 end
+const SYS_getgid 33554479 end
+const SYS_setuid 33554455 end
+const SYS_setgid 33554613 end
+const SYS_geteuid 33554457 end
+const SYS_getegid 33554475 end
+const SYS_setpgid 33554514 end
+const SYS_getppid 33554471 end
+const SYS_getpgrp 33554513 end
+const SYS_setsid 33554579 end
+const SYS_setreuid 33554558 end
+const SYS_setregid 33554559 end
+const SYS_getgroups 33554511 end
+const SYS_setgroups 33554512 end
+const SYS_setresuid 0 end
+const SYS_getresuid 0 end
+const SYS_setresgid 0 end
+const SYS_getresgid 0 end
+const SYS_getpgid 33554583 end
+const SYS_setfsuid 0 end
+const SYS_setfsgid 0 end
+const SYS_getsid 33554742 end
+const SYS_capget 0 end
+const SYS_capset 0 end
+const SYS_rt_sigpending 33554484 end
+const SYS_rt_sigtimedwait 0 end
+const SYS_rt_sigqueueinfo 0 end
+const SYS_rt_sigsuspend 33554543 end
+const SYS_sigaltstack 33554485 end
+const SYS_utime 0 end
+const SYS_mknod 33554446 end
+const SYS_uselib 0 end
+const SYS_personality 0 end
+const SYS_ustat 0 end
+const SYS_statfs 33554589 end
+const SYS_fstatfs 33554590 end
+const SYS_sysfs 0 end
+const SYS_getpriority 33554532 end
+const SYS_setpriority 33554528 end
+const SYS_sched_setparam 0 end
+const SYS_sched_getparam 0 end
+const SYS_sched_setscheduler 0 end
+const SYS_sched_getscheduler 0 end
+const SYS_sched_get_priority_max 0 end
+const SYS_sched_get_priority_min 0 end
+const SYS_sched_rr_get_interval 0 end
+const SYS_mlock 33554635 end
+const SYS_munlock 33554636 end
+const SYS_mlockall 33554756 end
+const SYS_munlockall 33554757 end
+const SYS_vhangup 0 end
+const SYS_modify_ldt 0 end
+const SYS_pivot_root 33554969 end
+const SYS__sysctl 33554634 end
+const SYS_prctl 0 end
+const SYS_arch_prctl 0 end
+const SYS_adjtimex 0 end
+const SYS_setrlimit 33554627 end
+const SYS_chroot 33554493 end
+const SYS_sync 33554468 end
+const SYS_acct 33554483 end
+const SYS_settimeofday 33554554 end
+const SYS_mount 33554599 end
+const SYS_umount2 0 end
+const SYS_swapon 33554517 end
+const SYS_swapoff 0 end
+const SYS_reboot 33554487 end
+const SYS_sethostname 0 end
+const SYS_setdomainname 0 end
+const SYS_iopl 0 end
+const SYS_ioperm 0 end
+const SYS_create_module 0 end
+const SYS_init_module 0 end
+const SYS_delete_module 0 end
+const SYS_get_kernel_syms 0 end
+const SYS_query_module 0 end
+const SYS_quotactl 33554597 end
+const SYS_nfsservctl 0 end
+const SYS_getpmsg 0 end
+const SYS_putpmsg 0 end
+const SYS_afs_syscall 0 end
+const SYS_tuxcall 0 end
+const SYS_security 0 end
+const SYS_gettid 33554718 end
+const SYS_readahead 0 end
+const SYS_setxattr 33554668 end
+const SYS_lsetxattr 0 end
+const SYS_fsetxattr 33554669 end
+const SYS_getxattr 33554666 end
+const SYS_lgetxattr 0 end
+const SYS_fgetxattr 33554667 end
+const SYS_listxattr 33554672 end
+const SYS_llistxattr 0 end
+const SYS_flistxattr 33554673 end
+const SYS_removexattr 33554670 end
+const SYS_lremovexattr 0 end
+const SYS_fremovexattr 33554671 end
+const SYS_tkill 0 end
+const SYS_time 0 end
+const SYS_futex 0 end
+const SYS_sched_setaffinity 0 end
+const SYS_sched_getaffinity 0 end
+const SYS_set_thread_area 0 end
+const SYS_io_setup 0 end
+const SYS_io_destroy 0 end
+const SYS_io_getevents 0 end
+const SYS_io_submit 0 end
+const SYS_io_cancel 0 end
+const SYS_get_thread_area 0 end
+const SYS_lookup_dcookie 0 end
+const SYS_epoll_create 0 end
+const SYS_epoll_ctl_old 0 end
+const SYS_epoll_wait_old 0 end
+const SYS_remap_file_pages 0 end
+const SYS_getdents64 0 end
+const SYS_set_tid_address 0 end
+const SYS_restart_syscall 0 end
+const SYS_semtimedop 0 end
+const SYS_fadvise64 0 end
+const SYS_timer_create 0 end
+const SYS_timer_settime 0 end
+const SYS_timer_gettime 0 end
+const SYS_timer_getoverrun 0 end
+const SYS_timer_delete 0 end
+const SYS_clock_settime 0 end
+const SYS_clock_gettime 0 end
+const SYS_clock_getres 0 end
+const SYS_clock_nanosleep 0 end
+const SYS_exit_group 0 end
+const SYS_epoll_wait 0 end
+const SYS_epoll_ctl 0 end
+const SYS_tgkill 0 end
+const SYS_utimes 33554570 end
+const SYS_vserver 0 end
+const SYS_mbind 0 end
+const SYS_set_mempolicy 0 end
+const SYS_get_mempolicy 0 end
+const SYS_mq_open 0 end
+const SYS_mq_unlink 0 end
+const SYS_mq_timedsend 0 end
+const SYS_mq_timedreceive 0 end
+const SYS_mq_notify 0 end
+const SYS_mq_getsetattr 0 end
+const SYS_kexec_load 0 end
+const SYS_waitid 33554605 end
+const SYS_add_key 0 end
+const SYS_request_key 0 end
+const SYS_keyctl 0 end
+const SYS_ioprio_set 0 end
+const SYS_ioprio_get 0 end
+const SYS_inotify_init 0 end
+const SYS_inotify_add_watch 0 end
+const SYS_inotify_rm_watch 0 end
+const SYS_migrate_pages 0 end
+const SYS_openat 33554895 end
+const SYS_mkdirat 33554907 end
+const SYS_mknodat 0 end
+const SYS_fchownat 33554900 end
+const SYS_futimesat 0 end
+const SYS_newfstatat 0 end
+const SYS_unlinkat 33554904 end
+const SYS_renameat 33554897 end
+const SYS_linkat 33554903 end
+const SYS_symlinkat 33554906 end
+const SYS_readlinkat 33554905 end
+const SYS_fchmodat 33554899 end
+const SYS_faccessat 33554898 end
+const SYS_pselect6 0 end
+const SYS_ppoll 0 end
+const SYS_unshare 0 end
+const SYS_set_robust_list 0 end
+const SYS_get_robust_list 0 end
+const SYS_splice 0 end
+const SYS_tee 0 end
+const SYS_sync_file_range 0 end
+const SYS_vmsplice 0 end
+const SYS_move_pages 0 end
+const SYS_utimensat 0 end
+const SYS_epoll_pwait 0 end
+const SYS_signalfd 0 end
+const SYS_timerfd_create 0 end
+const SYS_eventfd 0 end
+const SYS_fallocate 0 end
+const SYS_timerfd_settime 0 end
+const SYS_timerfd_gettime 0 end
+const SYS_accept4 0 end
+const SYS_signalfd4 0 end
+const SYS_eventfd2 0 end
+const SYS_epoll_create1 0 end
+const SYS_dup3 0 end
+const SYS_pipe2 0 end
+const SYS_inotify_init1 0 end
+const SYS_preadv 33554972 end
+const SYS_pwritev 33554973 end
+const SYS_rt_tgsigqueueinfo 0 end
+const SYS_perf_event_open 0 end
+const SYS_recvmmsg 0 end
+const SYS_fanotify_init 0 end
+const SYS_fanotify_mark 0 end
+const SYS_prlimit64 0 end
+const SYS_name_to_handle_at 0 end
+const SYS_open_by_handle_at 0 end
+const SYS_clock_adjtime 0 end
+const SYS_syncfs 0 end
+const SYS_sendmmsg 0 end
+const SYS_setns 0 end
+const SYS_getcpu 0 end
+const SYS_process_vm_readv 0 end
+const SYS_process_vm_writev 0 end
+const SYS_kcmp 0 end
+const SYS_finit_module 0 end
+
+const AT_FDCWD -100 end
+
+proc htons int -- int in
+  let x in
+    x       255 and 8 shl
+    x 8 shr 255 and
+    or
+  end
+end
+
+// Wrappers for common syscalls
+inline proc write int ptr int -- int in SYS_write syscall3 end
+inline proc read int ptr int -- int in SYS_read syscall3 end
+inline proc openat int int ptr int -- int in SYS_openat syscall4 end
+inline proc fstat ptr int -- int in SYS_fstat syscall2 end
+inline proc stat ptr ptr -- int in SYS_stat syscall2 end
+inline proc close int -- int in SYS_close syscall1 end
+inline proc exit int in SYS_exit syscall1 drop end
+inline proc mmap int int int int int ptr -- int in SYS_mmap syscall6 end
+inline proc clock_nanosleep ptr ptr int int -- int in SYS_clock_nanosleep syscall4 end
+inline proc clock_gettime ptr int -- int in SYS_clock_gettime syscall2 end
+inline proc fork -- int in SYS_fork syscall0 end
+inline proc getpid -- int in SYS_getpid syscall0 end
+inline proc execve ptr ptr ptr -- int in SYS_execve syscall3 end
+inline proc wait4 ptr int ptr int -- int in SYS_wait4 syscall4 end
+inline proc rename ptr ptr -- int in SYS_rename syscall2 end
+inline proc fcntl int int int -- int in SYS_fcntl syscall3 end
+inline proc kill int int -- int in SYS_kill syscall2 end
+// TODO: possible confusion with `dup` intrinsic
+inline proc dup2 int int -- int in SYS_dup2 syscall2 end
+inline proc socket int int int -- int in SYS_socket syscall3 end
+inline proc bind int ptr int -- int in SYS_bind syscall3 end
+inline proc listen int int -- int in SYS_listen syscall2 end
+inline proc accept ptr ptr int -- int in SYS_accept syscall3 end
+inline proc getcwd int ptr -- int in SYS_getcwd syscall2 end
+inline proc chroot ptr -- int in SYS_chroot syscall1 end
+inline proc ioctl ptr int int -- int in SYS_ioctl syscall3 end
+
+inline proc WIFSTOPPED int -- bool in
+  // (((x) & 0xff) == 0x7f)
+  255 and // 0xff
+  127 = // 0x7f
+end
+
+inline proc WIFCONTINUED int -- bool in
+  // ((x) == 0xffff)
+  65535 = // 0xffff
+end
+
+inline proc WIFSIGNALED int -- bool in
+  // (((signed char) (((x) & 0x7f) + 1) >> 1) > 0)
+  127 and // 0x7f
+  1 +
+  1 shr
+  0 >
+end
+
+inline proc WTERMSIG int -- int in
+  // ((x) & 0x7f)
+  127 and // 0x7f
+end
+
+inline proc WIFEXITED int -- bool in
+  // (((x) & 0x7f) == 0)
+  127 and // 0x7f
+  0 =
+end
+
+inline proc WEXITSTATUS int -- int in
+  // (((x) & 0xff00) >> 8)
+  65280 and // 0xff00
+  8 shr
+end
+
+proc isatty
+  int // fd
+  --
+  int  // errno
+  bool // is a tty?
+in
+  memory wsz sizeof(winsize) end
+  let fd in
+    wsz TIOCGWINSZ fd ioctl
+    let ret in
+      ret neg
+      ret 0 =
+    end
+  end
+end
+
+inline proc rt_sigreturn -- int in SYS_rt_sigreturn syscall0 end
+inline proc rt_sigaction int ptr ptr int -- int in SYS_rt_sigaction syscall4 end

@@ -1,0 +1,2548 @@
+/// BEGIN File Path Buffer //////////////////////////////
+// This is a memory region where we store file paths for compile-file-into-ops operation.
+// This buffer is created to ensure that the file path string live long enough for
+// compile-file-into-ops to process the files properly.
+const FPB_CAP 32 1024 * end
+memory fpb-start FPB_CAP end
+var fpb-size int end
+
+inline proc fpb-end -- ptr in fpb-start fpb-size @ ptr+ end
+inline proc fpb-rewind ptr in fpb-start ptr-diff fpb-size ! end
+
+proc fpb-alloc
+  int
+  --
+  ptr // result
+in
+  dup fpb-size @ + FPB_CAP > if
+    here eputs ": File Path Buffer capacity exceeded.\n" eputs
+    1 exit
+  end
+
+  dup 0 fpb-end memset
+  fpb-size @ rot + fpb-size !
+end
+
+inline proc fpb-append int ptr -- ptr in over fpb-alloc memcpy end
+/// END File Path Buffer //////////////////////////////
+
+/// BEGIN Intrinsics //////////////////////////////
+/// Intrinsics are built-in function of the language with the hardcoded implementation.
+const INTRINSIC_PLUS      1 offset end
+const INTRINSIC_MINUS     1 offset end
+const INTRINSIC_MUL       1 offset end
+const INTRINSIC_DIVMOD    1 offset end
+const INTRINSIC_IDIVMOD   1 offset end
+const INTRINSIC_MAX       1 offset end
+const INTRINSIC_EQ        1 offset end
+const INTRINSIC_GT        1 offset end
+const INTRINSIC_LT        1 offset end
+const INTRINSIC_GE        1 offset end
+const INTRINSIC_LE        1 offset end
+const INTRINSIC_NE        1 offset end
+const INTRINSIC_SHR       1 offset end
+const INTRINSIC_SHL       1 offset end
+const INTRINSIC_OR        1 offset end
+const INTRINSIC_AND       1 offset end
+const INTRINSIC_NOT       1 offset end
+const INTRINSIC_PRINT     1 offset end
+const INTRINSIC_DUP       1 offset end
+const INTRINSIC_SWAP      1 offset end
+const INTRINSIC_DROP      1 offset end
+const INTRINSIC_OVER      1 offset end
+const INTRINSIC_ROT       1 offset end
+const INTRINSIC_LOAD8     1 offset end
+const INTRINSIC_STORE8    1 offset end
+const INTRINSIC_LOAD16    1 offset end
+const INTRINSIC_STORE16   1 offset end
+const INTRINSIC_LOAD32    1 offset end
+const INTRINSIC_STORE32   1 offset end
+const INTRINSIC_LOAD64    1 offset end
+const INTRINSIC_STORE64   1 offset end
+const INTRINSIC_LOAD_PTR_TO 1 offset end
+const INTRINSIC_STORE_PTR_TO 1 offset end
+assert "Exhaustive cast intrinsic definition" COUNT_DATATYPES 4 = end
+const INTRINSIC_CAST_PTR  1 offset end
+const INTRINSIC_CAST_INT  1 offset end
+const INTRINSIC_CAST_BOOL 1 offset end
+const INTRINSIC_CAST_ADDR 1 offset end
+const INTRINSIC_ARGC      1 offset end
+const INTRINSIC_ARGV      1 offset end
+const INTRINSIC_ENVP      1 offset end
+const INTRINSIC_SYSCALL0  1 offset end
+const INTRINSIC_SYSCALL1  1 offset end
+const INTRINSIC_SYSCALL2  1 offset end
+const INTRINSIC_SYSCALL3  1 offset end
+const INTRINSIC_SYSCALL4  1 offset end
+const INTRINSIC_SYSCALL5  1 offset end
+const INTRINSIC_SYSCALL6  1 offset end
+const INTRINSIC_???       1 offset end
+const COUNT_INTRINSICS       reset end
+
+proc intrinsic-name
+  int // intrinsic
+  --
+  int ptr // name
+in
+  assert "Exhaustive handling of Intrinsics in intrinsic-name" COUNT_INTRINSICS 48 = end
+  let intr in
+         intr INTRINSIC_PLUS      = if  "+"
+    else intr INTRINSIC_MINUS     = if* "-"
+    else intr INTRINSIC_MUL       = if* "*"
+    else intr INTRINSIC_DIVMOD    = if* "divmod"
+    else intr INTRINSIC_IDIVMOD   = if* "idivmod"
+    else intr INTRINSIC_MAX       = if* "max"
+    else intr INTRINSIC_PRINT     = if* "print"
+    else intr INTRINSIC_EQ        = if* "="
+    else intr INTRINSIC_GT        = if* ">"
+    else intr INTRINSIC_LT        = if* "<"
+    else intr INTRINSIC_GE        = if* ">="
+    else intr INTRINSIC_LE        = if* "<="
+    else intr INTRINSIC_NE        = if* "!="
+    else intr INTRINSIC_SHR       = if* "shr"
+    else intr INTRINSIC_SHL       = if* "shl"
+    else intr INTRINSIC_OR        = if* "or"
+    else intr INTRINSIC_AND       = if* "and"
+    else intr INTRINSIC_NOT       = if* "not"
+    else intr INTRINSIC_DUP       = if* "dup"
+    else intr INTRINSIC_SWAP      = if* "swap"
+    else intr INTRINSIC_DROP      = if* "drop"
+    else intr INTRINSIC_OVER      = if* "over"
+    else intr INTRINSIC_ROT       = if* "rot"
+    else intr INTRINSIC_STORE8    = if* "!8"
+    else intr INTRINSIC_LOAD8     = if* "@8"
+    else intr INTRINSIC_STORE16   = if* "!16"
+    else intr INTRINSIC_LOAD16    = if* "@16"
+    else intr INTRINSIC_STORE32   = if* "!32"
+    else intr INTRINSIC_LOAD32    = if* "@32"
+    else intr INTRINSIC_STORE64   = if* "!64"
+    else intr INTRINSIC_LOAD64    = if* "@64"
+    else intr INTRINSIC_LOAD_PTR_TO = if* "@"
+    else intr INTRINSIC_STORE_PTR_TO = if* "!"
+    else intr INTRINSIC_CAST_PTR  = if* "cast(ptr)"
+    else intr INTRINSIC_CAST_INT  = if* "cast(int)"
+    else intr INTRINSIC_CAST_BOOL = if* "cast(bool)"
+    else intr INTRINSIC_CAST_ADDR = if* "cast(addr)"
+    else intr INTRINSIC_ARGC      = if* "argc"
+    else intr INTRINSIC_ARGV      = if* "argv"
+    else intr INTRINSIC_ENVP      = if* "envp"
+    else intr INTRINSIC_SYSCALL0  = if* "syscall0"
+    else intr INTRINSIC_SYSCALL1  = if* "syscall1"
+    else intr INTRINSIC_SYSCALL2  = if* "syscall2"
+    else intr INTRINSIC_SYSCALL3  = if* "syscall3"
+    else intr INTRINSIC_SYSCALL4  = if* "syscall4"
+    else intr INTRINSIC_SYSCALL5  = if* "syscall5"
+    else intr INTRINSIC_SYSCALL6  = if* "syscall6"
+    else intr INTRINSIC_???       = if* "???"
+    else
+      str-null
+      here eputs ": unreachable\n" eputs
+      69 exit
+    end
+  end
+end
+
+proc intrinsic-by-name
+  int ptr // name
+  --
+  int     // intrinsic
+  bool    // found
+in
+  memory name sizeof(Str) end
+  name !Str
+  true
+  assert "Exhaustive handling of Intrinsics in intrinsic-by-name" COUNT_INTRINSICS 48 = end
+       name @Str "+"          streq if  INTRINSIC_PLUS
+  else name @Str "-"          streq if* INTRINSIC_MINUS
+  else name @Str "*"          streq if* INTRINSIC_MUL
+  else name @Str "divmod"     streq if* INTRINSIC_DIVMOD
+  else name @Str "idivmod"    streq if* INTRINSIC_IDIVMOD
+  else name @Str "max"        streq if* INTRINSIC_MAX
+  else name @Str "print"      streq if* INTRINSIC_PRINT
+  else name @Str "="          streq if* INTRINSIC_EQ
+  else name @Str ">"          streq if* INTRINSIC_GT
+  else name @Str "<"          streq if* INTRINSIC_LT
+  else name @Str ">="         streq if* INTRINSIC_GE
+  else name @Str "<="         streq if* INTRINSIC_LE
+  else name @Str "!="         streq if* INTRINSIC_NE
+  else name @Str "shr"        streq if* INTRINSIC_SHR
+  else name @Str "shl"        streq if* INTRINSIC_SHL
+  else name @Str "or"         streq if* INTRINSIC_OR
+  else name @Str "and"        streq if* INTRINSIC_AND
+  else name @Str "not"        streq if* INTRINSIC_NOT
+  else name @Str "dup"        streq if* INTRINSIC_DUP
+  else name @Str "swap"       streq if* INTRINSIC_SWAP
+  else name @Str "drop"       streq if* INTRINSIC_DROP
+  else name @Str "over"       streq if* INTRINSIC_OVER
+  else name @Str "rot"        streq if* INTRINSIC_ROT
+  else name @Str "!8"         streq if* INTRINSIC_STORE8
+  else name @Str "@8"         streq if* INTRINSIC_LOAD8
+  else name @Str "!16"        streq if* INTRINSIC_STORE16
+  else name @Str "@16"        streq if* INTRINSIC_LOAD16
+  else name @Str "!32"        streq if* INTRINSIC_STORE32
+  else name @Str "@32"        streq if* INTRINSIC_LOAD32
+  else name @Str "!64"        streq if* INTRINSIC_STORE64
+  else name @Str "@64"        streq if* INTRINSIC_LOAD64
+  else name @Str "@"          streq if* INTRINSIC_LOAD_PTR_TO
+  else name @Str "!"          streq if* INTRINSIC_STORE_PTR_TO
+  else name @Str "cast(ptr)"  streq if* INTRINSIC_CAST_PTR
+  else name @Str "cast(int)"  streq if* INTRINSIC_CAST_INT
+  else name @Str "cast(bool)" streq if* INTRINSIC_CAST_BOOL
+  else name @Str "cast(addr)" streq if* INTRINSIC_CAST_ADDR
+  else name @Str "argc"       streq if* INTRINSIC_ARGC
+  else name @Str "argv"       streq if* INTRINSIC_ARGV
+  else name @Str "envp"       streq if* INTRINSIC_ENVP
+  else name @Str "syscall0"   streq if* INTRINSIC_SYSCALL0
+  else name @Str "syscall1"   streq if* INTRINSIC_SYSCALL1
+  else name @Str "syscall2"   streq if* INTRINSIC_SYSCALL2
+  else name @Str "syscall3"   streq if* INTRINSIC_SYSCALL3
+  else name @Str "syscall4"   streq if* INTRINSIC_SYSCALL4
+  else name @Str "syscall5"   streq if* INTRINSIC_SYSCALL5
+  else name @Str "syscall6"   streq if* INTRINSIC_SYSCALL6
+  else name @Str "???"        streq if* INTRINSIC_???
+  else
+    drop false 0
+  end
+  swap
+end
+/// END Intrinsics //////////////////////////////
+
+/// BEGIN Op //////////////////////////////
+/// "Op" is a single operation within the Porth's Intermediate Representation (IR):
+/// https://en.wikipedia.org/wiki/Intermediate_representation
+
+// TODO: make conditional and unconditional jumps jump by relative address
+// This will make the code more relocatable which will make it easily inlinable
+
+assert "Exhaustive push IR instructions definition for data types. For each data type we must have a corresponding OP_PUSH_<TYPE> instruction." COUNT_DATATYPES 4 = end
+// OP_PUSH_INT: Push an integer onto the data stack.
+//
+// operand type:    int
+// operand purpose: The number we are pushing.
+const OP_PUSH_INT        1 offset end
+// OP_PUSH_BOOL: Push a boolean onto the data stack.
+//
+// operand type:    bool
+// operand purpose: The boolean we are pushing.
+const OP_PUSH_BOOL       1 offset end
+// OP_PUSH_PTR: Push a pointer onto the data stack.
+//
+// operand type:    ptr
+// operand purpose: The pointer we are pushing.
+const OP_PUSH_PTR        1 offset end
+// OP_PUSH_ADDR: Push a procedure address onto the data stack.
+//
+// operand type:    addr
+// operand purpose: the index of the procedure in the global
+//                  procs array (See Proc section)
+const OP_PUSH_ADDR_OF       1 offset end
+// OP_PUSH_LOCAL_MEM: Push a pointer to a local memory region that is
+// located in the return stack onto the data stack.
+//
+// operand type:    int
+// operand purpose: The offset from the top of the return stack in bytes.
+//                  The pushed pointer should be an absolute value computed
+//                  at runtime using the provided offset.
+const OP_PUSH_LOCAL_MEM  1 offset end
+// OP_PUSH_GLOBAL_MEM: Push a pointer to a global memory region onto
+// the data stack.
+//
+// operand type:    int
+// operand purpose: The offset from the start of the uninitialized global
+//                  memory region. The pushed pointer should be an absolute
+//                  value computed at compile time using the provided offset.
+const OP_PUSH_GLOBAL_MEM 1 offset end
+// TODO: document OP_PUSH_GLOBAL_VAR
+const OP_PUSH_GLOBAL_VAR 1 offset end
+// TODO: document OP_PUSH_LOCAL_VAR
+const OP_PUSH_LOCAL_VAR 1 offset end
+// OP_PUSH_STR: Push a sized string onto the data stack. Actually
+// pushes two words onto the data stack. The first word is the size of
+// the string. The second word is the pointer to an initialized global
+// memory region containing the characters of the string.
+//
+// operand type:    int
+// operand purpose: An index in the global strlits array
+//                  (See Strlit section).
+const OP_PUSH_STR        1 offset end
+// OP_PUSH_CSTR: Push an unsized NULL-terminated C-style string onto
+// the data stack. Pushes a pointer to an initialized global memory
+// region containing the characters of the string. The sequence of
+// characters of the string always ends with '\0'.
+//
+// operand type:    int
+// operand purpose: An index in strlits array (See Strlit section for more information).
+const OP_PUSH_CSTR       1 offset end
+// OP_IF: Performs a conditional jump based on the consumed value from
+// the top of the data stack. If the value is `false` jump by the
+// provided address offset forward, otherwise "fall-through" to the
+// next instruction. The target jump offset - 1 should be always
+// pointing at OP_END_IF or OP_ELSE instruction denoting the
+// boundaries of the if-block.
+//
+// operand type:    int
+// operand purpose: The address offset to jump by forward
+//                  when the consumed value is `false`.
+const OP_IF              1 offset end
+// OP_IFSTAR: Performs a conditional jump based on the consumed value
+// from the top of the data stack. If the value is `false` jump by the
+// provided address offset forward, otherwise "fall-through" to the
+// next instruction. Always follows OP_ELSE instruction. The target
+// jump address offset - 1 should be always pointing at OP_END_IF or
+// OP_ELSE instruction denoting the boundaries of the if-block.
+//
+// operand type:    int
+// operand purpose: The address offset to jump by forward
+//                  when the consumed value is `false`.
+const OP_IFSTAR          1 offset end
+// OP_ELSE: Performs an unconditional jump. Always follows OP_IF or
+// OP_IFSTAR instruction. Always jumps to another OP_ELSE or OP_END_IF
+// instruction to short-circuit the entire if-else-if*-end chain when
+// the right condition is found.
+//
+// TODO: We need to double check the invariants stated above. I don't
+// remember 100% if OP_ELSE works like this right now.
+//
+// operand type:    int
+// operand purpose: The address offset to jump by forward.
+const OP_ELSE            1 offset end
+// OP_END_IF: Denotes the end of the if-else-if* block. Does not
+// really do anything else. Follows OP_IF, OP_ELSE or OP_IFSTAR
+// instructions. Could be simply ignored during target-specific code
+// generation.
+//
+// operand type:    void
+// operand purpose: ignored
+const OP_END_IF          1 offset end
+// OP_END_WHILE: Performs an unconditional jump to OP_WHILE
+// instruction denoting the end of the while-do block. Follows OP_DO
+// instruction. The address offset should be always used to jump
+// *BACKWARDS*.
+//
+// operand type:    int
+// operand purpose: the address offset to jump by *BACKWARDS*.
+const OP_END_WHILE       1 offset end
+// OP_PREP_PROC: Denotes the start of the procedure. Could be used by
+// the targets as an opportuinity to do target specific procedure
+// preparation.
+//
+// operand type:    int
+// operand purpose: the amount of bytes of local memory to allocate
+//                  on the return stack.
+const OP_PREP_PROC       1 offset end
+// OP_RET: Return from the procedure call.
+//
+// operand type:    int
+// operand purpose: the amount of bytes of local memory to deallocate
+//                  from the return stack before trying to pop an actual
+//                  return address from it.
+const OP_RET             1 offset end
+// OP_CALL: Call a procedure.
+//
+// operand type:    int
+// operand purpose: the index of the called procedure in the global
+//                  procs array (See Proc section)
+const OP_CALL            1 offset end
+// OP_INLINED: Denotes the start of the sequence of instructions that
+// were inlined from another procedure. The end of such sequence is
+// denoted by the size of the inlined procedure.
+//
+// operand type:    int
+// operand purpose: the index of the inlined procedure in the global
+//                  procs array (See Proc section)
+const OP_INLINED         1 offset end
+// OP_WHILE: Denotes the beginning of the while loop. Acts like a
+// label for the corresponding OP_END_WHILE instruction.
+//
+// operand type:    int
+// operand purpose: The address offset to jump by forward to reach the instruction
+//                  after the corresponding OP_END_WHILE. Denotes the size
+//                  of the while loop. Can be used by a type checker to
+//                  skip the whole loop after it was properly type checked.
+const OP_WHILE           1 offset end
+// OP_DO: Performs a conditional jump based on the consumed value from
+// the top of the data stack. If the value is `false` jump by the
+// provided address offset forward, otherwise "fall-through" to the
+// next instruction. Always follows OP_WHILE instruction. The target
+// jump address offset - 1 should be always pointing at OP_END_WHILE
+// instruction denoting the boundaries of the while-do-end-block.
+//
+// operand type:    addr
+// operand purpose: The address offset to jump by forward
+//                  when the consumed value is `false`.
+const OP_DO              1 offset end
+// OP_INTRINSIC: Calls a built in intrinsic procedure.
+//
+// operand type:    int
+// operand purpose: the id number of the intrinsic procedure
+//                  (See Intrinsics section)
+const OP_INTRINSIC       1 offset end
+// OP_CALL_LIKE: Calls a procedure by the addresss consumed from the
+// top of the data stack.
+//
+// operand type:    int
+// operand purpose: the index of the procedure in the global procs array (See Procs Section)
+//                  to use to type check the call.
+const OP_CALL_LIKE       1 offset end
+// OP_BIND_LET: Pops N elements from the top of the data stack and
+// pushes them to the return stack
+//
+// operand type:    int
+// operand purpose: the amount of elements to "bind"
+const OP_BIND_LET        1 offset end
+// OP_BIND_PEEK: Takes N elements from the top of the data stack and
+// pushes them to the return stack without removing them from the data
+// stack.
+//
+// operand type:    int
+// operand purpose: the amount of elements to "bind"
+const OP_BIND_PEEK       1 offset end
+// OP_PUSH_BIND: Pushes the value of the bound variable from the
+// return stack onto the data stack
+//
+// operand type:    int
+// operand purpose: the index of the value on the return stack to push onto the data stack.
+//                  The indexing starts from top of the return stack.
+const OP_PUSH_BIND       1 offset end
+// OP_UNBIND: Removes N elements from the return stack.
+//
+// operand type:    int
+// operand purpose: the amount of elements to "unbind"
+const OP_UNBIND          1 offset end
+// TODO: document OP_CAST IR instruction
+const OP_CAST            1 offset end
+const COUNT_OPS             reset end
+
+proc op-type-as-str
+  int // Op type
+  --
+  int ptr // str
+in
+  assert "Exhaustive handling of Op types in print-op-type" COUNT_OPS 28 = end
+       dup OP_PUSH_INT        =  if  "OP_PUSH_INT"
+  else dup OP_PUSH_BOOL       =  if* "OP_PUSH_BOOL"
+  else dup OP_PUSH_PTR        =  if* "OP_PUSH_PTR"
+  else dup OP_PUSH_ADDR_OF    =  if* "OP_PUSH_ADDR_OF"
+  else dup OP_PUSH_GLOBAL_VAR =  if* "OP_PUSH_GLOBAL_VAR"
+  else dup OP_PUSH_LOCAL_VAR  =  if* "OP_PUSH_LOCAL_VAR"
+  else dup OP_PUSH_GLOBAL_MEM =  if* "OP_PUSH_GLOBAL_MEM"
+  else dup OP_PUSH_LOCAL_MEM  =  if* "OP_PUSH_LOCAL_MEM"
+  else dup OP_PUSH_STR        =  if* "OP_PUSH_STR"
+  else dup OP_PUSH_CSTR       =  if* "OP_PUSH_CSTR"
+  else dup OP_INTRINSIC       =  if* "OP_INTRINSIC"
+  else dup OP_IF              =  if* "OP_IF"
+  else dup OP_IFSTAR          =  if* "OP_IFSTAR"
+  else dup OP_ELSE            =  if* "OP_ELSE"
+  else dup OP_END_IF          =  if* "OP_END_IF"
+  else dup OP_END_WHILE       =  if* "OP_END_WHILE"
+  else dup OP_PREP_PROC       =  if* "OP_PREP_PROC"
+  else dup OP_RET             =  if* "OP_RET"
+  else dup OP_CALL            =  if* "OP_CALL"
+  else dup OP_INLINED         =  if* "OP_INLINED"
+  else dup OP_WHILE           =  if* "OP_WHILE"
+  else dup OP_DO              =  if* "OP_DO"
+  else dup OP_CALL_LIKE       =  if* "OP_CALL_LIKE"
+  else dup OP_BIND_LET        =  if* "OP_BIND_LET"
+  else dup OP_BIND_PEEK       =  if* "OP_BIND_PEEK"
+  else dup OP_UNBIND          =  if* "OP_UNBIND"
+  else dup OP_PUSH_BIND       =  if* "OP_PUSH_BIND"
+  else dup OP_CAST            =  if* "OP_CAST"
+  else
+    here eputs ": Unknown op type\n" eputs 1 exit
+    0 NULL
+  end
+  rot drop
+end
+
+const Op.type    sizeof(u64)   offset end
+const Op.operand sizeof(u64)   offset end
+const Op.token   sizeof(Token) offset end
+const Op.label   sizeof(bool)  offset end
+const sizeof(Op) reset end
+
+const OPS_CAP 64 1024 * end
+var ops-count int end
+memory ops sizeof(Op) OPS_CAP * end
+
+proc push-op
+  int // type
+  int // operand
+  ptr // token
+in
+  memory op sizeof(Op) end
+  sizeof(Op) 0 op memset drop
+  sizeof(Token) swap op Op.token ptr+ memcpy drop
+  op Op.operand ptr+ !int
+  op Op.type ptr+ !int
+
+  sizeof(Op) op OPS_CAP ops ops-count append-item lnot if
+    here eputs ": ERROR: ops overflow\n" eputs 1 exit
+  end
+  drop
+end
+
+inline proc push-op-by-ptr
+  ptr // ptr to op struct
+in
+  dup Op.type    ptr+ @int swap
+  dup Op.operand ptr+ @int swap
+  dup Op.token   ptr+      swap drop
+  push-op
+end
+
+proc dump-ops in
+  0
+    while dup ops-count @ < do
+      dup sizeof(Op) * ops +ptr
+        dup Op.token ptr+ Token.loc ptr+ putloc ": " puts
+        dup Op.label ptr+ @bool if
+          "[x] " puts
+        else
+          "[ ] " puts
+        end
+        over putu " => " puts
+        dup Op.type ptr+ @64 op-type-as-str puts " " puts
+        dup Op.type ptr+ @64 OP_INTRINSIC = if
+          dup Op.operand ptr+ @64 intrinsic-name puts
+        else
+          dup Op.operand ptr+ @64 putu
+        end
+        "\n" puts
+      drop
+      1 +
+    end
+  drop
+end
+/// END Op ////////////////////////////
+
+/// BEGIN Const //////////////////////////////
+/// Array of the constants of the compiled program
+const Const.name  sizeof(Str) offset end
+const Const.loc   sizeof(Loc) offset end
+const Const.value sizeof(u64) offset end
+const Const.type  sizeof(u64) offset end
+const sizeof(Const) reset end
+
+// TODO: forbid constant definition inside of proc
+
+const CONST_CAP 1024 end
+memory consts sizeof(Const) CONST_CAP * end
+var consts-count int end
+
+proc const-lookup
+  int ptr // name
+  --
+  ptr     // ptr to const struct
+in
+  memory name sizeof(Str) end
+  name !Str
+
+  0 while
+    dup consts-count @ < if
+      dup sizeof(Const) * consts +ptr Const.name ptr+ @Str
+      name @Str
+      streq
+      lnot
+    else false end
+  do 1 + end
+
+  dup consts-count @ < if
+    sizeof(Const) * consts +ptr
+  else
+    drop NULL
+  end
+end
+
+proc const-define
+  ptr // ptr to const struct
+in
+  sizeof(Const) swap CONST_CAP consts consts-count append-item lnot if
+    here eputs ": ERROR: constants definitions capacity exceeded\n" eputs
+    1 exit
+  end
+  drop
+end
+/// END Const //////////////////////////////
+
+/// BEGIN Proc //////////////////////////////
+/// Array of procedures of the compiled program
+const Proc.name sizeof(Str)       offset end
+const Proc.addr sizeof(u64)       offset end
+const Proc.loc  sizeof(Loc)       offset end
+const Proc.ins  sizeof(TypeStack) offset end
+const Proc.outs sizeof(TypeStack) offset end
+const Proc.inlinable sizeof(bool) offset end
+const Proc.size sizeof(int)       offset end
+const Proc.used sizeof(bool)      offset end
+const sizeof(Proc)                 reset end
+const PROCS_CAP 1024 end
+var procs-count int end
+memory procs sizeof(Proc) PROCS_CAP * end
+var inside-proc bool end
+
+proc proc-lookup-by-name
+  int ptr // proc name
+  --
+  ptr     // proc
+in
+  memory name sizeof(Str) end
+  name !Str
+
+  0 while
+    dup procs-count @ < if
+      dup sizeof(Proc) * procs +ptr Proc.name ptr+ @Str
+      name @Str
+      streq
+      lnot
+    else false end
+  do 1 + end
+
+  dup procs-count @ < if
+    sizeof(Proc) * procs +ptr
+  else
+    drop NULL
+  end
+end
+
+proc proc-define
+  ptr // proc
+in
+  sizeof(Proc) swap PROCS_CAP procs procs-count append-item lnot if
+    here eputs ": ERROR: procedure definitions capacity exceeded\n" eputs
+    1 exit
+  end
+  drop
+end
+/// END Proc //////////////////////////////
+
+/// BEGIN Memory //////////////////////////////
+const Var.name sizeof(Str) offset end
+const Var.offset sizeof(u64) offset end
+const Var.loc sizeof(Loc) offset end
+const Var.type sizeof(int) offset end
+const sizeof(Var) reset end
+
+const LOCAL_VARS_CAP 1024 end
+var local-vars-count int end
+memory local-vars sizeof(Var) LOCAL_VARS_CAP * end
+
+proc local-vars-define
+  ptr // ptr to var struct
+in
+  sizeof(Var) swap LOCAL_VARS_CAP local-vars local-vars-count append-item lnot if
+    here eputs ": ERROR: local vars overflow\n" eputs
+    1 exit
+  end
+  drop
+end
+
+proc local-vars-lookup
+  int ptr // name
+  --
+  ptr     // Var
+in
+  let n s in
+    0 while dup local-vars-count @ < do
+      dup sizeof(Var) * local-vars +ptr
+      let index gvar in
+        gvar Var.name ptr+ @Str n s streq if
+          gvar return
+        end
+
+        index 1 +
+      end
+    end drop
+  end
+
+  NULL
+end
+
+const GLOBAL_VARS_CAP 1024 end
+var global-vars-count int end
+memory global-vars sizeof(Var) GLOBAL_VARS_CAP * end
+
+proc global-vars-define
+  ptr // ptr to var struct
+in
+  sizeof(Var) swap GLOBAL_VARS_CAP global-vars global-vars-count append-item lnot if
+    here eputs ": ERROR: global vars overflow\n" eputs
+    1 exit
+  end
+  drop
+end
+
+proc global-vars-lookup
+  int ptr // name
+  --
+  ptr     // Var
+in
+  let n s in
+    0 while dup global-vars-count @ < do
+      dup sizeof(Var) * global-vars +ptr
+      let index gvar in
+        gvar Var.name ptr+ @Str n s streq if
+          gvar return
+        end
+
+        index 1 +
+      end
+    end drop
+  end
+
+  NULL
+end
+
+const Memory.name sizeof(Str) offset end
+const Memory.offset sizeof(u64) offset end
+const Memory.loc sizeof(Loc) offset end
+const sizeof(Memory) reset end
+
+const GLOBAL_MEMORIES_CAP 1024 end
+var global-memories-count int end
+memory global-memories sizeof(Memory) GLOBAL_MEMORIES_CAP * end
+var global-memory-capacity int end
+
+const LOCAL_MEMORIES_CAP 1024 end
+var local-memories-count int end
+memory local-memories sizeof(Memory) LOCAL_MEMORIES_CAP * end
+var local-memory-capacity int end
+
+inline proc local-memories-clean in
+  0 local-memories-count  !
+  0 local-memory-capacity !
+end
+
+proc local-memories-lookup
+  int ptr // name
+  --
+  ptr     // Memory
+in
+  memory name sizeof(Str) end
+  name !Str
+
+  0 while
+    dup local-memories-count @ < if
+      dup sizeof(Memory) * local-memories +ptr Memory.name ptr+ @Str
+      name @Str
+      streq
+      lnot
+    else false end
+  do 1 + end
+
+  dup local-memories-count @ < if
+    sizeof(Memory) * local-memories +ptr
+  else
+    drop NULL
+  end
+end
+
+proc global-memories-lookup
+  int ptr // name
+  --
+  ptr     // Memory
+in
+  memory name sizeof(Str) end
+  name !Str
+
+  0 while
+    dup global-memories-count @ < if
+      dup sizeof(Memory) * global-memories +ptr Memory.name ptr+ @Str
+      name @Str
+      streq
+      lnot
+    else false end
+  do 1 + end
+
+  dup global-memories-count @ < if
+    sizeof(Memory) * global-memories +ptr
+  else
+    drop NULL
+  end
+end
+
+proc local-memory-define
+  ptr
+in
+  sizeof(Memory) swap LOCAL_MEMORIES_CAP local-memories local-memories-count append-item lnot if
+    here eputs ": ERROR: local memory definitions capacity exceeded\n" eputs
+    1 exit
+  end
+  drop
+end
+
+proc global-memory-define
+  ptr
+in
+  sizeof(Memory) swap GLOBAL_MEMORIES_CAP global-memories global-memories-count append-item lnot if
+    here eputs ": ERROR: global memory definitions capacity exceeded\n" eputs
+    1 exit
+  end
+  drop
+end
+/// END Memory //////////////////////////////
+
+/// BEGIN Compiler //////////////////////////////
+const PARSE_BLOCK_STACK_CAP 1024 end
+var parse-block-stack-count int end
+memory parse-block-stack sizeof(u64) PARSE_BLOCK_STACK_CAP * end
+
+proc parse-block-stack-push int in
+  parse-block-stack-count @ PARSE_BLOCK_STACK_CAP >= if
+    here eputs ": ERROR: parse block stack overflow\n" eputs 1 exit
+  end
+  parse-block-stack parse-block-stack-count @ sizeof(u64) * ptr+ !64
+  parse-block-stack-count inc
+end
+
+proc parse-block-stack-pop -- int in
+  parse-block-stack-count @ 0 = if
+    here eputs ": ERROR: parse block stack underflow\n" eputs 1 exit
+  end
+  parse-block-stack-count dec
+  parse-block-stack parse-block-stack-count @ sizeof(u64) * ptr+ @64
+end
+
+proc parse-block-stack-top -- int bool in
+  parse-block-stack-count @ 0 = if
+    0 false
+  else
+    parse-block-stack parse-block-stack-count @ 1 - sizeof(u64) * ptr+ @64
+    true
+  end
+end
+
+const ConstFrame.type sizeof(u64) offset end
+const ConstFrame.value sizeof(u64) offset end
+const sizeof(ConstFrame) reset end
+
+const CONST_STACK_CAP 1024 end
+var const-stack-count int end
+memory const-stack sizeof(ConstFrame) CONST_STACK_CAP * end
+var iota int end
+
+inline proc const-stack-clean in
+  0 const-stack-count !
+end
+
+proc const-stack-push
+  int // type
+  int // value
+in
+  memory frame sizeof(ConstFrame) end
+  frame ConstFrame.value ptr+ !64
+  frame ConstFrame.type ptr+ !64
+
+  sizeof(ConstFrame) frame CONST_STACK_CAP const-stack const-stack-count append-item lnot if
+    here eputs ": TODO: const stack overflow\n" eputs
+    1 exit
+  end
+  drop
+end
+
+proc const-stack-pop
+  --
+  int // type
+  int // value
+in
+  const-stack-count @ 0 <= if
+    here eputs ": Assertion Failed: const stack underflow\n" eputs
+    1 exit
+  end
+
+  const-stack-count dec
+  const-stack-count @ sizeof(ConstFrame) * const-stack +ptr
+  dup ConstFrame.type ptr+ @64
+  swap ConstFrame.value ptr+ @64
+end
+
+proc const-expect-arity
+  int // arity
+  ptr // token
+in
+  memory token sizeof(ptr) end
+  token !ptr
+
+  const-stack-count @ > if
+    token @ptr Token.loc ptr+             eputloc
+    ": ERROR: not enough arguments for `" eputs
+    token @ptr Token.text ptr+ @Str       eputs
+    "`\n"                                 eputs
+    1 exit
+  end
+end
+
+proc parse-after-call-like
+  ptr // lexer
+  --
+  int
+in
+  memory lexer sizeof(ptr) end
+  lexer !ptr
+  memory token sizeof(Token) end
+
+  token lexer @ptr lexer-next-token lnot if
+    token Token.loc ptr+ lexer @ptr lexer-get-loc
+    token Token.loc ptr+                               eputloc
+    ": ERROR: expected procedure name after keyword `" eputs
+    KEYWORD_CALL_LIKE keyword-name                     eputs
+    "`. But got nothing.\n"                            eputs
+    1 exit
+  end
+
+  token Token.type ptr+ @int
+    dup TOKEN_WORD != if
+      token Token.loc ptr+                       eputloc
+      ": ERROR: expected "                       eputs
+      TOKEN_WORD HUMAN_SINGULAR human-token-type eputs
+      " after keyword `"                         eputs
+      KEYWORD_CALL_LIKE keyword-name             eputs
+      "` but got "                               eputs
+      dup HUMAN_SINGULAR human-token-type        eputs
+      "\n"                                       eputs
+      1 exit
+    end
+  drop
+
+  memory result sizeof(int) end
+
+  token Token.value ptr+
+    dup @Str proc-lookup-by-name
+      dup NULL ptr= if
+        token Token.loc ptr+   eputloc
+        ": ERROR: procedure `" eputs
+        over @Str              eputs
+        "` does not exist\n"   eputs
+        1 exit
+      end
+
+      dup procs ptr-diff sizeof(Proc) / result !int
+    drop
+  drop
+
+  result @int
+end
+
+proc parse-after-addr-of
+  ptr // lexer
+  --
+  int
+in
+  memory lexer sizeof(ptr) end
+  lexer !ptr
+  memory token sizeof(Token) end
+
+  token lexer @ptr lexer-next-token lnot if
+    token Token.loc ptr+ lexer @ptr lexer-get-loc
+    token Token.loc ptr+                               eputloc
+    ": ERROR: expected procedure name after keyword `" eputs
+    KEYWORD_ADDR_OF keyword-name                       eputs
+    "`. But got nothing.\n"                            eputs
+    1 exit
+  end
+
+  token Token.type ptr+ @int
+    dup TOKEN_WORD != if
+      token Token.loc ptr+                       eputloc
+      ": ERROR: expected "                       eputs
+      TOKEN_WORD HUMAN_SINGULAR human-token-type eputs
+      " after keyword `"                         eputs
+      KEYWORD_ADDR_OF keyword-name               eputs
+      "` but got "                               eputs
+      dup HUMAN_SINGULAR human-token-type        eputs
+      "\n"                                       eputs
+      1 exit
+    end
+  drop
+
+  memory result sizeof(int) end
+
+  token Token.value ptr+
+    dup @Str proc-lookup-by-name
+      dup NULL ptr= if
+        token Token.loc ptr+   eputloc
+        ": ERROR: procedure `" eputs
+        over @Str              eputs
+        "` does not exist\n"   eputs
+        1 exit
+      end
+
+      dup procs ptr-diff sizeof(Proc) /
+      result !int
+    drop
+  drop
+
+  result @int
+end
+
+proc parse-var-type
+  ptr // lexer
+  --
+  int // type
+in
+  memory token sizeof(Token) end
+
+  token Token.loc ptr+
+  let lexer loc in
+    token lexer lexer-next-token lnot if
+      token Token.loc ptr+ lexer lexer-get-loc
+      token Token.loc ptr+ eputloc
+      ": ERROR: expected primitive type but got nothing\n" eputs
+      1 exit
+    end
+
+    token Token.type ptr+ @int TOKEN_WORD != if
+      here eputs ": TODO: report expected word\n" eputs
+      loc located-here
+      1 exit
+    end
+
+    token Token.value ptr+ @Str datatype-by-name lnot if
+      here eputs ": TODO: report expected primitive data type\n" eputs
+      loc located-here
+      1 exit
+    end
+
+    unpack-type
+
+    while
+      token lexer lexer-next-token lnot if
+        here eputs ": TODO: report reached EOF before the end of the var definition\n" eputs
+        loc located-here
+        1 exit
+      end
+
+      token Token.type ptr+ @int
+      token Token.value ptr+
+      let type value in
+        type TOKEN_WORD = if
+          value @Str "ptr-to" streq if
+            let ptr-count prim in
+              ptr-count 1 +
+              prim
+            end
+            true
+          else
+            here eputs ": TODO: unexpected word in the variable definition\n" eputs
+            loc located-here
+            1 exit
+            false
+          end
+        else type TOKEN_KEYWORD = if*
+          value @int KEYWORD_END = if
+            false
+          else
+            here eputs ": TODO: report unexpected keyword in the variable definition\n" eputs
+            loc located-here
+            1 exit
+            false
+          end
+        else
+          here eputs ": TODO: report unexpected token type in the variable definition\n" eputs
+            loc located-here
+          1 exit
+          false
+        end
+      end
+    do end
+    pack-type
+  end
+end
+
+proc eval-const-value
+  ptr // ptr to lexer
+  --
+  int // type
+  int // value
+in
+  memory lexer sizeof(ptr) end
+  lexer !ptr
+
+  memory token sizeof(Token) end
+  memory done sizeof(bool) end
+  false done !64
+
+  const-stack-clean
+
+  while
+    done @bool lnot if
+      token lexer @ptr lexer-next-token
+    else false end
+  do
+    token Token.type ptr+ @64 TOKEN_INT = if
+      DATATYPE_INT token Token.value ptr+ @64 const-stack-push
+    else token Token.type ptr+ @64 TOKEN_WORD = if*
+      token Token.value ptr+ @Str intrinsic-by-name if
+        assert "Exhaustive handling of casts in eval-const-value" COUNT_DATATYPES 4 = end
+        dup INTRINSIC_CAST_PTR = if
+          1 token const-expect-arity
+          const-stack-pop
+          swap drop
+          DATATYPE_PTR swap
+          const-stack-push
+        else dup INTRINSIC_CAST_BOOL = if*
+          1 token const-expect-arity
+          const-stack-pop
+          swap drop
+          DATATYPE_BOOL swap
+          const-stack-push
+        else dup INTRINSIC_CAST_ADDR = if*
+          1 token const-expect-arity
+          const-stack-pop
+          swap drop
+          DATATYPE_ADDR swap
+          const-stack-push
+        else dup INTRINSIC_CAST_INT = if*
+          1 token const-expect-arity
+          const-stack-pop
+          swap drop
+          DATATYPE_INT swap
+          const-stack-push
+        else dup INTRINSIC_MINUS = if*
+          2 token const-expect-arity
+          // TODO: `-` intrinsic ignores the types in compile time evaluation
+          const-stack-pop swap drop
+          const-stack-pop swap drop
+          swap
+          -
+          DATATYPE_INT swap const-stack-push
+        else dup INTRINSIC_PLUS = if*
+          2 token const-expect-arity
+          // TODO: `+` intrinsic ignores the types in compile time evaluation
+          const-stack-pop swap drop
+          const-stack-pop swap drop
+          swap
+          +
+          DATATYPE_INT swap const-stack-push
+        else dup INTRINSIC_MUL = if*
+          2 token const-expect-arity
+          // TODO: `*` intrinsic ignores the types in compile time evaluation
+          const-stack-pop swap drop
+          const-stack-pop swap drop
+          swap
+          *
+          DATATYPE_INT swap const-stack-push
+        else dup INTRINSIC_EQ = if*
+          2 token const-expect-arity
+          // TODO: `=` intrinsic ignores the types in compile time evaluation
+          const-stack-pop swap drop
+          const-stack-pop swap drop
+          swap
+          = cast(int)
+          DATATYPE_BOOL swap const-stack-push
+        else dup INTRINSIC_MAX = if*
+          2 token const-expect-arity
+          // TODO: `max` intrinsic ignores the types in compile time evaluation
+          const-stack-pop swap drop
+          const-stack-pop swap drop
+          swap
+          max
+          DATATYPE_INT swap const-stack-push
+        else dup INTRINSIC_DIVMOD = if*
+          2 token const-expect-arity
+          // TODO: `divmod` intrinsic ignores the types in compile time evaluation
+          const-stack-pop swap drop
+          const-stack-pop swap drop
+          swap
+          divmod
+          swap
+          DATATYPE_INT swap const-stack-push
+          DATATYPE_INT swap const-stack-push
+        else dup INTRINSIC_DROP = if*
+          1 token const-expect-arity
+          const-stack-pop drop drop
+        else
+          token Token.loc ptr+ eputloc ": ERROR: intrinsic `" eputs token Token.value ptr+ @Str eputs "` is not supported in compile time evaluation\n" eputs
+          1 exit
+        end
+      else token Token.value ptr+ @Str const-lookup dup NULL ptr!= if*
+        dup Const.type ptr+ @64
+        swap Const.value ptr+ @64
+        const-stack-push
+      else
+        drop // const
+        token Token.loc ptr+             eputloc
+        ": ERROR: unsupported word `"    eputs
+        token Token.value ptr+ @Str      eputs
+        "` in compile time evaluation\n" eputs
+        1 exit
+      end
+      drop // intrinsic
+    else token Token.type ptr+ @64 TOKEN_KEYWORD = if*
+      assert "Exhaustive handling of keywords in eval-const-value" COUNT_KEYWORDS 24 = end
+      token Token.value ptr+ @64
+        dup KEYWORD_END = if
+          true done !64
+        else dup KEYWORD_OFFSET = if*
+          1 token const-expect-arity
+          const-stack-pop swap drop // TODO: offset ignores the type
+          DATATYPE_INT iota @ const-stack-push
+          iota @ + iota !
+        else dup KEYWORD_RESET = if*
+          DATATYPE_INT iota @ const-stack-push
+          0 iota !
+        else dup KEYWORD_ADDR_OF = if*
+          DATATYPE_ADDR
+          lexer @ptr parse-after-addr-of
+          const-stack-push
+        else dup KEYWORD_CAST = if*
+          1 token const-expect-arity
+          const-stack-pop
+          swap drop
+          lexer @ptr parse-var-type swap
+          const-stack-push
+        else
+          token Token.loc ptr+             eputloc
+          ": ERROR: unsupported keyword `" eputs
+          dup keyword-name                 eputs
+          "` in compile time evaluation\n" eputs
+          1 exit
+        end
+      drop
+    else
+      token Token.loc ptr+                                    eputloc
+      ": ERROR: "                                             eputs
+      token Token.type ptr+ @64 HUMAN_PLURAL human-token-type eputs
+      " are not supported in compile time evaluation\n"       eputs
+      1 exit
+    end
+  end
+
+  done @bool if
+    const-stack-count @ 1 != if
+      token Token.loc ptr+ eputloc
+      ": ERROR: The result of expression in compile time evaluation must be a single number\n" eputs
+      1 exit
+    end
+
+    const-stack-pop
+  else
+    here eputs ": TODO: const expression was not closed properly\n" eputs
+    1 exit
+    0 0
+  end
+end
+
+proc check-name-redefinition
+  int ptr // name
+  ptr     // loc
+in
+  memory loc sizeof(Loc) end
+  sizeof(Loc) swap loc memcpy drop
+  memory name sizeof(Str) end
+  name !Str
+
+  name @Str intrinsic-by-name if
+    loc                                            eputloc
+    ": ERROR: redefinition of an intrinsic word `" eputs
+    name @Str                                      eputs
+    "`\n"                                          eputs
+    1 exit
+  end drop
+
+  name @Str const-lookup dup NULL ptr!= if
+    loc eputloc ": ERROR: redefinition of a constant `" eputs name @Str eputs "`\n" eputs
+    dup Const.loc ptr+ eputloc ": NOTE: the original definition is located here\n" eputs
+    1 exit
+  end drop
+
+  name @Str proc-lookup-by-name dup NULL ptr!= if
+    loc eputloc ": ERROR: redefinition of a procedure `" eputs name @Str eputs "`\n" eputs
+    dup Proc.loc ptr+ eputloc ": NOTE: the original definition is located here\n" eputs
+    1 exit
+  end drop
+
+  // TODO: this is a really strange code
+  // I think this should be the other way around. When we are inside of a proc we check local memories,
+  // otherwise the global ones.
+
+  name @Str local-memories-lookup dup NULL ptr!= if
+    loc eputloc ": ERROR: redefinition of a local memory region `" eputs name @Str eputs "`\n" eputs
+    dup Memory.loc ptr+ eputloc ": NOTE: the original definition is located here\n" eputs
+    1 exit
+  end drop
+
+  name @Str local-vars-lookup dup NULL ptr!= if
+    loc eputloc ": ERROR: redefinition of a local variable `" eputs name @Str eputs "`\n" eputs
+    dup Var.loc ptr+ eputloc ": NOTE: the original definition is located here\n" eputs
+    1 exit
+  end drop
+
+  inside-proc @ lnot if
+    name @Str global-memories-lookup
+    let gmem in
+      gmem ?null lnot if
+        loc eputloc ": ERROR: redefinition of a global memory region `" eputs name @Str eputs "`\n" eputs
+        gmem Memory.loc ptr+ eputloc ": NOTE: the original definition is located here\n" eputs
+        1 exit
+      end
+    end
+
+    name @Str global-vars-lookup
+    let gvar in
+      gvar ?null lnot if
+        loc eputloc ": ERROR: redefinition of a global variable `" eputs name @Str eputs "`\n" eputs
+        gvar Var.loc ptr+ eputloc ": NOTE: the original definition is located here\n" eputs
+        1 exit
+      end
+    end
+  end
+end
+
+proc parse-proc-contract-list
+  ptr  // lexer
+  ptr  // type stack
+  --
+  bool // encountered `--`
+in
+  memory token sizeof(Token) end
+  memory bikeshedder sizeof(bool) end
+  false bikeshedder !bool
+
+  token Token.type ptr+
+  token Token.value ptr+
+  token Token.loc ptr+
+  let lexer stack type value loc in
+    while
+      token lexer lexer-next-token if
+        type @int TOKEN_WORD = if
+          value @Str datatype-by-name if
+            loc stack type-stack-push
+            true // continue
+          else drop value @Str "ptr-to" streq if*
+            stack ?type-stack-empty if
+              loc                                                   eputloc
+              ": ERROR: not enough arguments for type constructor " eputs
+              value @Str                                            eputs
+              ". Expected 1 but got 0.\n"                           eputs
+              1 exit
+            end
+
+            stack TypeStack.top ptr+ @ptr TypeFrame.type ptr+
+            let type in
+              type @int
+              unpack-type
+              let ptr-count prim in
+                ptr-count 1 +
+                prim
+              end
+              pack-type
+              type !int
+            end
+
+            true // continue
+          else
+            loc                           eputloc
+            ": ERROR: unknown type `"     eputs
+            // TODO: everything that's coming from the user (a.k.a. source code) must be escaped before being printed on the screen
+            // Otherwise if the name of the type (in this specific case) contains any special control characters (like '\r') for example. The entire diagnostic is gonna be corrupted rendering it useless
+            value @Str                    eputs
+            "` in procedure definition\n" eputs
+            1 exit
+            false // break, compile error
+          end
+        else type @int TOKEN_KEYWORD = if*
+          value @int
+            dup KEYWORD_IN = if
+              false // break, reached the end of list
+            else dup KEYWORD_BIKESHEDDER = if*
+              true bikeshedder !bool
+              false // break, reached the end of list
+            else
+              loc            eputloc
+              ": ERROR: unexpected keyword `" eputs
+              dup keyword-name                eputs
+              "` in procedure definition\n"   eputs
+              1 exit
+              false // break, compile error
+            end
+            swap
+          drop
+        else
+          loc                                                 eputloc
+          ": ERROR: "                                         eputs
+          type @int HUMAN_PLURAL human-token-type             eputs
+          " are not supported in procedure definition. Only " eputs
+          TOKEN_WORD HUMAN_PLURAL human-token-type            eputs
+          " are supported.\n"                                 eputs
+          1 exit
+          false // break, compile error
+        end
+      else
+        false // break, ran out of tokens
+      end
+    do end
+
+    bikeshedder @bool
+  end
+end
+
+proc introduce-proc
+  ptr // token
+  ptr // lexer
+  bool // inline
+in
+  memory inlinable sizeof(bool) end
+  inlinable !bool
+  memory lexer_ sizeof(ptr) end
+  lexer_ !ptr
+  memory token sizeof(Token) end
+  sizeof(Token) swap token memcpy drop
+  memory prok sizeof(Proc) end
+
+  inside-proc @ if
+    token Token.loc ptr+                                                             eputloc
+    ": ERROR: definition procedures inside of procedures is not allowed (for now)\n" eputs
+    procs-count @ 1 - sizeof(Proc) * procs +ptr Proc.loc ptr+                     eputloc
+    ": NOTE: the current procedure starts here\n"                                    eputs
+    1 exit
+  end
+
+  sizeof(Proc) 0 prok memset drop
+
+  inlinable @bool prok Proc.inlinable ptr+ !bool
+
+  token lexer_ @ptr lexer-next-token lnot if
+    token Token.loc ptr+ eputloc
+    ": ERROR: expected procedure name but found nothing\n" eputs
+    1 exit
+  end
+
+  token Token.type ptr+ @64 TOKEN_WORD != if
+    token Token.loc ptr+ eputloc
+    ": ERROR: expected procedure name to be a word but found " eputs
+    token Token.type ptr+ @64 HUMAN_SINGULAR human-token-type eputs
+    " instead\n" eputs
+    1 exit
+  end
+
+  sizeof(Loc) token Token.loc ptr+ prok Proc.loc ptr+ memcpy drop
+
+  token Token.value ptr+ @Str
+  token Token.loc ptr+
+  check-name-redefinition
+
+  sizeof(Str) token Token.value ptr+ prok Proc.name ptr+ memcpy drop
+
+  ops-count @
+  dup prok Proc.addr ptr+ !64
+      parse-block-stack-push
+  OP_PREP_PROC 0 token push-op
+
+  prok
+    lexer_ @ptr over Proc.ins ptr+ parse-proc-contract-list if
+      lexer_ @ptr over Proc.outs ptr+ parse-proc-contract-list drop
+    end
+  drop
+
+  true inside-proc !
+
+  prok proc-define
+end
+
+proc inline-procedure
+  ptr // proc
+  ptr // token
+in
+  let prok token in
+    prok Proc.addr ptr+ @int sizeof(Op) * ops +ptr
+
+    dup Op.type ptr+ @int OP_PREP_PROC != if
+      here eputs ": Assertion Failed: procedures must start with OP_PREP_PROC\n" eputs
+      1 exit
+    end
+
+    OP_INLINED
+    prok procs ptr-diff sizeof(Proc) /
+    token
+    push-op
+
+    // TODO: this is unsafe and can easily overflow ops array
+    sizeof(Op) ptr+
+    while dup Op.type ptr+ @int OP_RET != do
+      dup push-op-by-ptr
+      sizeof(Op) ptr+
+    end
+    drop
+  end
+end
+
+proc current-proc -- ptr in
+  inside-proc @ if
+    procs-count @
+    1 -
+    sizeof(Proc) *
+    procs +ptr
+  else
+    NULL
+  end
+end
+
+const BIND_TABLE_CAP 1024 end
+memory bind-table sizeof(Str) BIND_TABLE_CAP * end
+var bind-table-count int end
+
+proc bind-table-push int ptr in
+  bind-table-count @ BIND_TABLE_CAP >= if
+    here eputs ": Assertion Failed: bind table overflow!\n" eputs
+    1 exit
+  end
+
+  bind-table-count @
+  sizeof(Str) *
+  bind-table +ptr
+  !Str
+
+  bind-table-count inc
+end
+
+proc bind-table-lookup
+  int ptr
+  --
+  int bool
+in
+  memory name sizeof(Str) end
+  name !Str
+
+  bind-table-count @ 1 -
+  while
+    dup 0 >= if
+      dup sizeof(Str) * bind-table +ptr @Str
+      name @Str
+      streq
+      lnot
+    else false end
+  do 1 - end
+
+  dup 0 >= if
+    bind-table-count @
+    swap 1 +
+    -
+    true
+  else
+    false
+  end
+end
+
+proc bind-table-rev-top int in
+  bind-table-count @
+  let n cap in
+    n cap > if
+      here eputs ": Assertion Failed: not enough elements to reverse in bind-table-rev-top" eputs
+      1 exit
+    end
+
+    cap n -
+    cap 1 -
+    while over over < do
+      let i j in
+        i sizeof(Str) * bind-table +ptr
+        j sizeof(Str) * bind-table +ptr
+        let a b in
+          a @Str
+          b @Str
+          a !Str
+          b !Str
+        end
+        i 1 +
+        j 1 -
+      end
+    end
+    drop
+    drop
+  end
+end
+
+// TODO: consider merging the process of compilation and type checking
+// - Helps to catch type errors earlier
+// - Allows `???` to show the type stack even if the program is not fully compilable
+
+proc parse-bind-list
+  ptr // lexer
+  --
+  int
+in
+  memory lexer sizeof(ptr) end
+  lexer !ptr
+  memory count sizeof(int) end
+  0 count !int
+  memory token sizeof(Token) end
+
+  while
+    token lexer @ptr lexer-next-token if
+      token Token.type ptr+ @int
+        dup TOKEN_WORD = if
+          token Token.value ptr+ @Str bind-table-push
+          count inc64
+          true
+        else dup TOKEN_KEYWORD = if*
+          token Token.value ptr+ @int
+            dup KEYWORD_IN = if
+              false
+            else
+              token Token.loc ptr+                            eputloc
+              ": ERROR: keyword `"                            eputs
+              dup keyword-name                                eputs
+              "` is not supported in the let-binding list.\n" eputs
+              1 exit
+              false
+            end
+          swap drop
+        else
+          token Token.loc ptr+                                     eputloc
+          ": ERROR: "                                              eputs
+          token Token.type ptr+ @int HUMAN_PLURAL human-token-type eputs
+          " are not supported in the let-binding list. Only "      eputs
+          TOKEN_WORD HUMAN_PLURAL human-token-type                 eputs
+          " are supported.\n"                                      eputs
+          1 exit
+          false // break
+        end
+      swap drop
+    else
+      token Token.loc ptr+
+      dup lexer @ptr lexer-get-loc
+      eputloc
+      ": ERROR: expected keyword `" eputs
+      KEYWORD_IN keyword-name       eputs
+      "` but got nothing\n"         eputs
+      1 exit
+
+      false // break
+    end
+  do end
+
+  count @int bind-table-rev-top
+
+  count @int
+end
+
+// TODO: more reliable id of the file we've already included
+// Full path should suffice for now. Not sure if we wanna go into
+// realpath kinda business with resolving symlinks and other crazy stuff.
+const Module.path sizeof(ptr) offset end
+const Module.finished sizeof(bool) offset end
+const sizeof(Module) reset end
+
+const MODULES_CAP 1024 end
+memory modules sizeof(Module) MODULES_CAP * end
+var modules-count int end
+
+proc module-lookup
+  ptr // full-path cstr
+  --
+  ptr
+in
+  let path-cstr in
+    0 while
+      dup modules-count @ < if
+        dup sizeof(Module) * modules +ptr
+        let module in
+          module Module.path ptr+ @ptr
+          path-cstr
+          cstreq
+          lnot
+        end
+      else false end
+    do 1 + end
+
+    let index in
+      index modules-count @ < if
+        index sizeof(Module) * modules +ptr
+      else
+        NULL
+      end
+    end
+  end
+end
+
+proc module-start
+  ptr // full-path cstr
+  --
+  ptr
+in
+  modules-count @ MODULES_CAP >= if
+    here eputs ": Assertion Failed: modules overflow\n" eputs
+    1 exit
+  end
+
+  let path-cstr in
+    modules-count @
+    sizeof(Module) *
+    modules +ptr
+
+    modules-count inc
+
+    let module in
+      path-cstr module Module.path ptr+ !ptr
+      false     module Module.finished  ptr+ !bool
+      module
+    end
+  end
+end
+
+const INCLUDE_PATHS_CAP 1024 end
+memory include-paths sizeof(Str) INCLUDE_PATHS_CAP * end
+var include-paths-count int end
+
+proc include-paths-add
+  int ptr
+in
+  include-paths-count @
+  let n s count in
+    count INCLUDE_PATHS_CAP >= if
+      here eputs ": Assertion Failed: include paths capacity overflow\n" eputs
+      1 exit
+    end
+
+    n s
+    count sizeof(Str) * include-paths +ptr
+    !Str
+
+    include-paths-count inc
+  end
+end
+
+// Insert a path at the front of the search list.  `-os <name>` uses this so the
+// OS ABI module shadows the Linux one instead of being searched after it.
+proc include-paths-prepend
+  int ptr
+in
+  include-paths-count @
+  let n s count in
+    count INCLUDE_PATHS_CAP >= if
+      here eputs ": Assertion Failed: include paths capacity overflow\n" eputs
+      1 exit
+    end
+
+    // Shift every slot one to the right, back to front.
+    count
+    while dup 0 > do
+      let i in
+        i 1 - sizeof(Str) *
+        include-paths +ptr @Str
+        i sizeof(Str) * include-paths +ptr
+        !Str
+        i 1 -
+      end
+    end drop
+
+    n s
+    include-paths !Str
+
+    include-paths-count inc
+  end
+end
+
+proc include-paths-resolve-file
+  int ptr
+  --
+  int ptr
+  bool
+in
+  let n s in
+    0
+    tmp-end
+    while
+      peek i path in
+        i include-paths-count @ < if
+          i sizeof(Str) * include-paths +ptr @Str tmp-append drop
+          "/"                                     tmp-append drop
+          n s                                     tmp-append drop
+          1                                       tmp-alloc  drop
+          path ?file-exist lnot
+        else false end
+      end
+    do
+      let i path in
+        i 1 +
+        path dup tmp-rewind
+      end
+    end
+
+    let i path in
+      i include-paths-count @ < if
+        path cstr-to-str normpath true
+      else
+        str-null false
+      end
+    end
+  end
+end
+
+proc compile-file-into-ops
+  ptr  // file path cstr
+in
+  let file-path-cstr in
+    tmp-end
+      sizeof(Lexer) tmp-alloc
+      sizeof(Token) tmp-alloc
+      let lexer token in
+        sizeof(Lexer) 0 lexer memset drop
+        file-path-cstr map-file    lexer Lexer.content   ptr+ !Str
+        file-path-cstr cstr-to-str lexer Lexer.file-path ptr+ !Str
+
+        false inside-proc !
+
+        while token lexer lexer-next-token do
+          assert "Exhaustive handling of Token types" COUNT_TOKENS 6 = end
+
+          token Token.type ptr+
+          token Token.loc ptr+
+          token Token.value ptr+
+
+          let type loc value in
+            type @int TOKEN_INT = if
+              inside-proc @ lnot if
+                loc                                                  eputloc
+                ": ERROR: "                                          eputs
+                type @int HUMAN_PLURAL human-token-type              eputs
+                " are not allowed at the top level of the program\n" eputs
+                1 exit
+              end
+
+              OP_PUSH_INT value @int token push-op
+            else type @int TOKEN_KEYWORD = if*
+              value @int
+              let keyword in
+                assert "Exhaustive handling of keywords in compile-file-into-ops" COUNT_KEYWORDS 24 = end
+                keyword KEYWORD_IF = if
+                  ops-count @ parse-block-stack-push
+                  OP_IF 0 token push-op
+                else keyword KEYWORD_IFSTAR = if*
+                  parse-block-stack-top
+                  let else-ip ok in
+                    ok lnot if
+                      loc eputloc ": ERROR: `if*` can only come after `else`, but found nothing\n" eputs
+                      1 exit
+                    end
+
+                    else-ip sizeof(Op) * ops +ptr Op.type ptr+ @int OP_ELSE != if
+                      loc eputloc ": ERROR: `if*` can only come after `else`\n" eputs
+                      1 exit
+                    end
+                  end
+
+                  ops-count @ parse-block-stack-push
+                  OP_IFSTAR 0 token push-op
+                else keyword KEYWORD_ELSE = if*
+                  parse-block-stack-count @ 0 <= if
+                    loc eputloc
+                    ": ERROR: `else` can only come after `if` or `if*`\n" eputs
+                    1 exit
+                  end
+
+                  parse-block-stack-pop
+                  dup sizeof(Op) * ops +ptr
+                  dup Op.type ptr+ @int
+                  let if-ip if-op if-type in
+                    if-type OP_IF = if
+                      ops-count @
+                      let current-ip in
+                        current-ip if-ip - 1 + if-op Op.operand ptr+ !64
+                        current-ip parse-block-stack-push
+                        OP_ELSE 0 token push-op
+                      end
+                    else if-type OP_IFSTAR = if*
+                      parse-block-stack-pop
+                      dup sizeof(Op) * ops +ptr
+                      ops-count @
+                      let else-ip else-op current-ip in
+                        else-op Op.type ptr+ @int OP_ELSE != if
+                          here eputs ": Assertion Failed: expected OP_ELSE\n" eputs
+                          1 exit
+                        end
+
+                        current-ip if-ip   - 1 + if-op   Op.operand ptr+ !int
+                        current-ip else-ip -     else-op Op.operand ptr+ !int
+                        current-ip parse-block-stack-push
+                      end
+                      OP_ELSE 0 token push-op
+                    else
+                      loc eputloc
+                      ": ERROR: `else` can only come after `if` or `if*`\n" eputs
+                      1 exit
+                    end
+                  end
+                else keyword KEYWORD_WHILE = if*
+                  ops-count @ parse-block-stack-push
+                  OP_WHILE 0 token push-op
+                else keyword KEYWORD_DO = if*
+                  parse-block-stack-count @ 0 <= if
+                    loc eputloc ": ERROR: `do` is not preceded by `while`\n" eputs
+                    1 exit
+                  end
+
+                  parse-block-stack-pop
+                  dup sizeof(Op) * ops +ptr
+                  dup Op.type ptr+ @int
+                  over Op.token ptr+
+                  let
+                    while-ip while-op while-type while-token
+                  in
+                    while-type OP_WHILE != if
+                      loc                                          eputloc
+                      ": ERROR: `do` is not preceded by `while`\n" eputs
+                      while-token Token.loc  ptr+                  eputloc
+                      ": NOTE: preceded by `"                      eputs
+                      while-token Token.text ptr+ @Str             eputs
+                      "` instead\n"                                eputs
+                      1 exit
+                    end
+
+                    ops-count @ parse-block-stack-push
+                    // NOTE: temporarily storring the absolute address
+                    // of OP_WHILE in OP_DO operand so we can use it
+                    // for OP_END_WHILE later.
+                    //
+                    // TODO: Maybe we should use block-stack for now?
+                    //
+                    // - rexim 06.02.2022
+                    OP_DO while-ip token push-op
+                  end
+                else keyword KEYWORD_END = if*
+                  parse-block-stack-count @ 0 <= if
+                    loc eputloc
+                    ": ERROR: `end` has nothing to close\n" eputs
+                    1 exit
+                  end
+
+                  parse-block-stack-pop   // ip
+                  dup sizeof(Op) * ops +ptr // op
+                  dup Op.type ptr+ @int
+                  let
+                    begin-ip begin-op begin-type
+                  in
+                    begin-type OP_IF = if
+                      ops-count @ begin-ip - begin-op Op.operand ptr+ !int
+                      OP_END_IF 0 token push-op
+                    else begin-type OP_IFSTAR = if*
+                      parse-block-stack-pop
+                      dup sizeof(Op) * ops +ptr
+                      let else-ip else-op in
+                        else-op Op.type ptr+ @int OP_ELSE != if
+                          here eputs ": Assertion Failed: `else-if*-end` chain is broken. Lost `else` somewhere.\n" eputs
+                          loc located-here
+                          1 exit
+                        end
+
+                        ops-count @ begin-ip - 1 + begin-op Op.operand ptr+ !int
+                        ops-count @ else-ip  -     else-op  Op.operand ptr+ !int
+
+                        OP_END_IF 0 token push-op
+                      end
+                    else begin-type OP_ELSE = if*
+                      ops-count @ begin-ip - begin-op Op.operand ptr+ !int
+                      OP_END_IF 0 token push-op
+                    else begin-type OP_DO = if*
+                      begin-op Op.operand ptr+ @int
+                      let while-ip in
+                        while-ip ops-count @ >= if
+                          here eputs ": Assertion Failed: out of range\n" eputs
+                          1 exit
+                        end
+
+                        while-ip sizeof(Op) * ops +ptr
+                        let while-op in
+                          while-op Op.type ptr+ @int OP_WHILE != if
+                            here eputs ": Assertion Failed: `do` does not preceed `while`\n" eputs
+                            1 exit
+                          end
+
+                          ops-count @
+                          let current-ip in
+                            OP_END_WHILE current-ip while-ip - token push-op
+
+                            current-ip 1 + begin-ip - begin-op Op.operand ptr+ !int
+                            current-ip 1 + while-ip - while-op Op.operand ptr+ !int
+                          end
+                        end
+                      end
+                    else begin-type OP_PREP_PROC = if*
+                      local-memory-capacity @
+                      begin-op Op.operand ptr+
+                      !64
+
+                      // Compute the size of the procedure
+                      current-proc
+                      let prok in
+                        prok ?null if
+                          here eputs ": Assertion failed: OP_PREP_PROC outside of actual proc\n" eputs
+                          loc located-here
+                          1 exit
+                        end
+
+                        ops-count @
+                        prok Proc.addr ptr+ @int -
+                        1 -
+
+                        prok Proc.size ptr+ !int
+                      end
+
+                      OP_RET 0 token push-op
+
+                      ops-count @ 1 - sizeof(Op) * ops +ptr
+                        while dup Op.type ptr+ @int OP_PREP_PROC != do
+                          dup Op.type ptr+ @int OP_RET = if
+                            dup Op.operand ptr+
+                            local-memory-capacity @
+                            swap !int
+                          end
+                          sizeof(Op) ptr-
+                        end
+                      drop
+
+                      local-memories-clean
+                      false inside-proc !
+                    else begin-type OP_BIND_LET = begin-type OP_BIND_PEEK = lor if*
+                      begin-op Op.operand ptr+ @int
+                      let bind-count in
+                        OP_UNBIND bind-count token push-op
+
+                        bind-table-count @ bind-count < if
+                          here eputs ": Assertion Failed: bind table underflow!\n" eputs
+                          1 exit
+                        end
+
+                        bind-table-count @
+                        bind-count -
+                        bind-table-count !
+                      end
+                    else
+                      begin-op Op.token ptr+
+                      let begin-token in
+                        loc                                                                                         eputloc
+                        ": ERROR: `end` can only close `if`, `if*`, `else`, `do`, `proc`, `let` or `peek` blocks\n" eputs
+                        begin-token Token.loc ptr+                                                                  eputloc
+                        ": NOTE: found `"                                                                           eputs
+                        begin-token Token.text ptr+ @Str                                                            eputs
+                        "` instead\n"                                                                               eputs
+                      end
+                      1 exit
+                    end
+                  end
+                else keyword KEYWORD_INCLUDE = if*
+                  token lexer lexer-next-token lnot if
+                    loc eputloc
+                    ": ERROR: expected path to the include file but found nothing\n" eputs
+                    1 exit
+                  end
+
+                  type @int TOKEN_STR != if
+                    loc                                                                    eputloc
+                    ": ERROR: expected path to the include file to be a string but found " eputs
+                    type @int HUMAN_SINGULAR human-token-type                              eputs
+                    "\n"                                                                   eputs
+                    1 exit
+                  end
+
+                  tmp-end
+                  let s in
+                    value @Str include-paths-resolve-file lnot if
+                      loc               eputloc
+                      ": ERROR: file `" eputs
+                      value @Str        eputs
+                      "` not found\n"   eputs
+                      1 exit
+                    end
+
+                    let n s in
+                      fpb-end
+                      n s fpb-append drop
+                      1 fpb-alloc drop
+
+                      fpb-end
+                      n s abspath fpb-append drop
+                      1 fpb-alloc drop
+                    end
+                    s tmp-rewind
+                  end
+
+                  let include-path abs-include-path in
+                    abs-include-path module-lookup
+                    let module in
+                      module NULL ptr= if
+                        abs-include-path module-start
+                          silent @ lnot if
+                            "[INFO] Including "      puts
+                            include-path cstr-to-str puts
+                            "\n"                     puts
+                          end
+                          include-path compile-file-into-ops
+                        true swap Module.finished ptr+ !bool
+                      else module Module.finished ptr+ @bool lnot if*
+                        // TODO: report more information on detected loop
+                        // Preferably the whole "path" of the loop
+                        //
+                        // When we allow arbitrary order of definitions
+                        // this may not be necessary anymore, cause we may
+                        // simply allow include loops and the arbitrary
+                        // order should resolve everything.
+                        //
+                        // - rexim 05.02.2022
+                        loc                       eputloc
+                        ": ERROR: include loop\n" eputs
+                        1 exit
+                      end
+                    end
+                  end
+                else keyword KEYWORD_CONST = if*
+                  token lexer lexer-next-token lnot if
+                    loc eputloc
+                    ": expected constant name but found nothing\n" eputs
+                    1 exit
+                  end
+
+                  type @int TOKEN_WORD != if
+                    // TODO: report what was found instead of a word
+                    loc                                       eputloc
+                    ": expected constant name to be a word\n" eputs
+                    1 exit
+                  end
+
+                  value @Str loc check-name-redefinition
+
+                  tmp-end
+                    sizeof(Const) tmp-alloc
+                    let konst in
+                      value @Str konst Const.name ptr+ !Str
+                      sizeof(Loc) loc konst Const.loc ptr+ memcpy drop
+
+                      lexer eval-const-value
+                      konst Const.value ptr+ !64
+                      konst Const.type ptr+ !64
+                      konst const-define
+                    end
+                  tmp-rewind
+                else keyword KEYWORD_INLINE = if*
+                  token lexer lexer-next-token lnot if
+                    loc eputloc
+                    ": ERROR: expected `proc` keyword after `inline` but got nothing\n" eputs
+                    1 exit
+                  end
+
+                  type  @int TOKEN_KEYWORD =
+                  value @int KEYWORD_PROC  =
+                  land lnot if
+                    loc                                                         eputloc
+                    ": ERROR: Expected keyword `proc` after `inline` but got `" eputs
+                    token Token.text ptr+ @Str                                  eputs
+                    "`\n"                                                       eputs
+                    1 exit
+                  end
+
+                  token lexer true introduce-proc
+                else keyword KEYWORD_PROC = if*
+                  token lexer false introduce-proc
+                else keyword KEYWORD_VAR = if*
+                  token lexer lexer-next-token lnot if
+                    loc eputloc
+                    ": expected variable name but found nothing\n" eputs
+                    1 exit
+                  end
+
+                  type @int TOKEN_WORD != if
+                    loc                                                eputloc
+                    ": expected variable name to be a word but found " eputs
+                    type @int HUMAN_SINGULAR human-token-type          eputs
+                    " instead\n"                                       eputs
+                    1 exit
+                  end
+
+                  value @Str loc check-name-redefinition
+
+                  tmp-end
+                    sizeof(Var) tmp-alloc
+                    let varr in
+                      value @Str               varr Var.name   ptr+ !Str
+                      sizeof(Loc) loc          varr Var.loc    ptr+ memcpy drop
+                      lexer parse-var-type     varr Var.type   ptr+ !int
+
+                      current-proc
+                      let prok in
+                        prok ?null if
+                          global-memory-capacity @ varr Var.offset ptr+ !int
+                          global-memory-capacity 8 inc-by
+                          varr global-vars-define
+                        else
+                          local-memory-capacity @ varr Var.offset ptr+ !int
+                          local-memory-capacity 8 inc-by
+                          varr local-vars-define
+                        end
+                      end
+                    end
+                  tmp-rewind
+                else keyword KEYWORD_MEMORY = if*
+                  token lexer lexer-next-token lnot if
+                    loc eputloc
+                    ": expected memory name but found nothing\n" eputs
+                    1 exit
+                  end
+
+                  type @int TOKEN_WORD != if
+                    loc                                              eputloc
+                    ": expected memory name to be a word but found " eputs
+                    type @int HUMAN_SINGULAR human-token-type        eputs
+                    " instead\n"                                     eputs
+                    1 exit
+                  end
+
+                  value @Str loc check-name-redefinition
+
+                  tmp-end
+                    sizeof(Memory) tmp-alloc
+                    let memori in
+                      sizeof(Str) value memori Memory.name ptr+ memcpy drop
+                      sizeof(Loc) loc   memori Memory.loc  ptr+ memcpy drop
+
+                      lexer eval-const-value
+                      let const-type memory-size in
+                        const-type DATATYPE_INT != if
+                          loc                                     eputloc
+                          ": ERROR: Expected memory size to be `" eputs
+                          DATATYPE_INT display-type              eputs
+                          "` but got `"                           eputs
+                          const-type display-type                eputs
+                          "` instead\n"                           eputs
+                          1 exit
+                        end
+
+                        // NOTE: align all the memories to the size of the word
+                        memory-size
+                        7 +
+                        8 /
+                        8 *
+
+                        current-proc
+                        let prok in
+                          prok NULL ptr!= if
+                            prok Proc.inlinable ptr+ @bool if
+                              loc                                                                     eputloc
+                              ": ERROR: local memories are not allowed in inlinable procedures yet\n" eputs
+                              prok Proc.loc ptr+                                                      eputloc
+                              ": NOTE: the procedure starts here\n"                                   eputs
+                              1 exit
+                            end
+
+                            local-memory-capacity @ memori Memory.offset ptr+ !int
+                            local-memory-capacity @ + local-memory-capacity !
+                            memori local-memory-define
+                          else
+                            global-memory-capacity @ memori Memory.offset ptr+ !int
+                            global-memory-capacity @ + global-memory-capacity !
+                            memori global-memory-define
+                          end
+                        end
+                      end
+                    end
+                  tmp-rewind
+                else keyword KEYWORD_ASSERT = if*
+                  token lexer lexer-next-token lnot if
+                    loc eputloc
+                    ": expected assert message but found nothing\n" eputs
+                    1 exit
+                  end
+
+                  type @int TOKEN_STR != if
+                    // TODO: report what was found instead of a string
+                    loc                                          eputloc
+                    ": expected assert message to be a string\n" eputs
+                    1 exit
+                  end
+
+                  lexer eval-const-value
+                  let assert-type assert-value in
+                    assert-type DATATYPE_BOOL != if
+                      loc eputloc ": ERROR: assertion expects the expression to be of type `bool`\n" eputs
+                      1 exit
+                    end
+
+                    assert-value cast(bool) lnot if
+                      loc eputloc ": ERROR: Static Assertion Failed: " eputs value @Str eputs "\n" eputs
+                      1 exit
+                    end
+                  end
+                else keyword KEYWORD_HERE = if*
+                  OP_PUSH_STR
+                  loc strbuf-loc strlit-define
+                  token
+                  push-op
+                else keyword KEYWORD_ADDR_OF = if*
+                  OP_PUSH_ADDR_OF
+                  lexer parse-after-addr-of
+                  token // TODO: the token refers to `addr-of` keyword, but not the name of the procedure the address
+                        // of which we are taking.
+                  push-op
+                else keyword KEYWORD_CALL_LIKE = if*
+                  OP_CALL_LIKE
+                  lexer parse-after-call-like
+                  token // TODO: the token refers to `call-like` keyword, but not the name of the procedure the address
+                        // of which we are taking.
+                  push-op
+                else keyword KEYWORD_LET = if*
+                  ops-count @
+                  parse-block-stack-push
+
+                  OP_BIND_LET
+                  lexer parse-bind-list
+                  token
+                  push-op
+                else keyword KEYWORD_PEEK = if*
+                  ops-count @
+                  parse-block-stack-push
+
+                  OP_BIND_PEEK
+                  lexer parse-bind-list
+                  token
+                  push-op
+                else keyword KEYWORD_RETURN = if*
+                  current-proc
+                  let prok in
+                    prok ?null if
+                      here eputs ": Assertion Failed: `return` keyword outside of a procedure\n" eputs
+                      1 exit
+                    end
+
+                    prok Proc.inlinable ptr+ @bool if
+                      loc eputloc
+                      ": TODO: early return is not allowed in inline procedures yet\n" eputs
+                      1 exit
+                    end
+                  end
+
+                  OP_UNBIND bind-table-count @ token push-op
+                  OP_RET 0 token push-op
+                else keyword KEYWORD_CAST = if*
+                  OP_CAST
+                  lexer parse-var-type
+                  token
+                  push-op
+                else
+                  loc                             eputloc
+                  ": ERROR: unexpected keyword `" eputs
+                  keyword keyword-name            eputs
+                  "`\n"                           eputs
+                  1 exit
+                end
+              end
+            else type @int TOKEN_WORD = if*
+              inside-proc @ lnot if
+                loc                                                      eputloc
+                ": ERROR: "                                              eputs
+                token Token.type ptr+ @int HUMAN_PLURAL human-token-type eputs
+                " are not allowed at the top level of the program\n"     eputs
+                1 exit
+              end
+
+              value // token.value
+                assert "Exhaustive handling of Op types in compile-file-into-ops" COUNT_OPS 28 = end
+                dup @Str intrinsic-by-name if
+                  OP_INTRINSIC swap token push-op
+                else drop dup @Str bind-table-lookup if*
+                  OP_PUSH_BIND
+                  swap
+                  token
+                  push-op
+                else drop dup @Str const-lookup dup NULL ptr!= if*
+                  let konst in
+                    OP_PUSH_INT
+                    konst Const.value ptr+ @int
+                    token
+                    push-op
+
+                    OP_CAST
+                    konst Const.type ptr+ @int
+                    token
+                    push-op
+                  end
+                else drop dup @Str proc-lookup-by-name dup NULL ptr!= if*
+                  dup Proc.inlinable ptr+ @bool if
+                    current-proc
+                      over over ptr= if
+                        // TODO: inline recursion   prevention mechanism does not detect mutual recursion
+                        // Which is fine for now cause we do not even support mutual recursion.
+                        // But when we do, this might bite us in the ass. Which it will I'm 100% sure.
+                        // So this TODO is kinda pointless. But let's keep it in here just in case.
+                        loc                           eputloc
+                        ": ERROR: no recursion in inline procedures\n" eputs
+                        1 exit
+                      end
+                    drop
+
+                    token
+                    inline-procedure
+                  else
+                    OP_CALL
+                    swap procs ptr-diff sizeof(Proc) /
+                    token
+                    push-op
+                  end
+                else drop dup @Str local-memories-lookup dup NULL ptr!= if*
+                  // TODO: local memory regions can shadow the global ones
+                  // Do we wanna warn the user about that?
+                  OP_PUSH_LOCAL_MEM
+                    swap Memory.offset ptr+ @64
+                    bind-table-count @ 8 * // NOTE: let bindings do offset the local memories
+                    +
+                  token
+                  push-op
+                else drop dup @Str local-vars-lookup dup NULL ptr!= if*
+                  let lvar in
+                    OP_PUSH_LOCAL_VAR
+                      lvar Var.offset ptr+ @int
+                      bind-table-count @ 8 * + // NOTE: let bindings do offset the local variables
+                      dup 0xFFFF_FFFFF > if
+                        here eputs ": Assertion Failed: offset is too big" eputs
+                        1 exit
+                      end
+                      0xFFFF_FFFF and
+                      32 shl
+                      lvar Var.type ptr+ @int or
+                    token
+                    push-op
+                  end
+                else drop dup @Str global-vars-lookup dup NULL ptr!= if*
+                  global-vars ptr-diff sizeof(Var) /
+                  let index in
+                    OP_PUSH_GLOBAL_VAR
+                    index
+                    token
+                    push-op
+                  end
+                else drop dup @Str global-memories-lookup dup NULL ptr!= if*
+                  OP_PUSH_GLOBAL_MEM
+                  swap Memory.offset ptr+ @64
+                  token
+                  push-op
+                else drop
+                  loc      eputloc
+                  ": ERROR: unknown word `" eputs
+                  dup @Str                  eputs
+                  "`\n"                     eputs
+                  1 exit
+                end
+              drop // token.value
+            else type @int TOKEN_STR = if*
+              inside-proc @ lnot if
+                loc                                     eputloc
+                ": ERROR: "                                              eputs
+                token Token.type ptr+ @int HUMAN_PLURAL human-token-type eputs
+                " are not allowed at the top level of the program\n"     eputs
+                1 exit
+              end
+
+              OP_PUSH_STR
+              value @Str strlit-define
+              token
+              push-op
+            else type @int TOKEN_CSTR = if*
+              inside-proc @ lnot if
+                loc                                     eputloc
+                ": ERROR: "                                              eputs
+                token Token.type ptr+ @int HUMAN_PLURAL human-token-type eputs
+                " are not allowed at the top level of the program\n"     eputs
+                1 exit
+              end
+
+              OP_PUSH_CSTR
+              value @Str strlit-define
+              token
+              push-op
+            else type @int TOKEN_CHAR = if*
+              inside-proc @ lnot if
+                loc                                     eputloc
+                ": ERROR: "                                              eputs
+                token Token.type ptr+ @int HUMAN_PLURAL human-token-type eputs
+                " are not allowed at the top level of the program\n"     eputs
+                1 exit
+              end
+
+              OP_PUSH_INT
+              value @int
+              token
+              push-op
+            else
+              here eputs ": Unreachable. Unknown token type.\n" eputs
+              1 exit
+            end
+          end
+
+        end
+
+        parse-block-stack-count @ 0 > if
+          parse-block-stack-pop
+          sizeof(Op) *
+          ops +ptr
+
+          dup Op.token ptr+ Token.loc ptr+ eputloc ": ERROR: unclosed block\n" eputs
+
+          1 exit
+          drop
+        end
+      end
+    tmp-rewind
+  end
+end
+
+proc markup-op-labels in
+  0 while dup ops-count @ < do
+    let ip in
+      ip sizeof(Op) * ops +ptr
+      dup Op.type ptr+ @int swap
+      dup Op.label ptr+ swap
+      let type label op in
+        type OP_PREP_PROC =
+        type OP_WHILE = lor
+        if
+          true label !bool
+        else type OP_ELSE = type OP_END_IF = lor if*
+          true label !bool
+          ip 1 + ops-count @ < if
+            true
+            ip 1 + sizeof(Op) * ops +ptr Op.label ptr+
+            !bool
+          end
+        else type OP_END_WHILE = if*
+          ip 1 + ops-count @ < if
+            true
+            ip 1 + sizeof(Op) * ops +ptr Op.label ptr+
+            !bool
+          end
+        end
+      end
+      ip 1 +
+    end
+  end drop
+end
+
+proc compile-program-into-ops ptr in
+  let file-path-cstr in
+    include-paths-count @
+      // NOTE: Temporarily adding the folder the source is located in to the include paths
+      // and then removing it at the end of the compilation
+      //
+      // - rexim 01.02.2022
+      file-path-cstr cstr-to-str dirname include-paths-add
+
+      timeit/from-here
+        file-path-cstr module-lookup NULL ptr!= if
+          here eputs ": Assertion Failed: the entry module should not be included at this point\n" eputs
+          1 exit
+        end
+
+        // TODO: should we normalize the entry module path before the compilation?
+        file-path-cstr module-start
+          silent @ lnot if
+            "[INFO] Compiling "        puts
+            file-path-cstr cstr-to-str puts
+            "\n"                       puts
+          end
+          file-path-cstr
+          compile-file-into-ops
+        true swap Module.finished ptr+ !bool
+
+        markup-op-labels
+      "[PROFILE] Compilation" silent @ timeit/to-here
+    include-paths !int
+  end
+end
+/// END Compiler //////////////////////////////

@@ -1,0 +1,15 @@
+include "std.porth"
+
+proc foo int ptr-to in
+  let p in
+    p @
+    69 +
+    p !
+  end
+end
+
+var flag bool end
+
+proc main in
+  flag foo
+end
